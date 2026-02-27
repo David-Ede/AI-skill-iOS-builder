@@ -36,7 +36,12 @@ npm run test
 ## Smoke Test Minimum Contract
 - App shell route renders without crash.
 - Secondary route module compiles and renders.
-- Core async utility path has success and failure assertion.
+- Data-layer client path covers retry and cache behavior when `WithDataLayer` is enabled.
+
+## Module Test Expectations
+- `WithAuth`: include `__tests__/auth-oauth.test.ts` for provider slot baseline.
+- `WithPush`: include `__tests__/notification-deeplink.test.ts` for payload parsing baseline.
+- `WithDataLayer`: include `__tests__/async-resource.test.ts` with retry/cache assertions.
 
 ## CI Expectations
 - Run the same three gates in CI before EAS build.

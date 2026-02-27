@@ -55,9 +55,9 @@ Files created or modified:
 
 Feature-module outputs (enabled by flags):
 - UI foundation routes/screens and placeholder assets metadata.
-- Auth/session template files.
-- Push registration/permission template files.
-- Profile/settings and data-layer template files.
+- Auth/session template files with OAuth provider slots.
+- Push registration/permission/deep-link template files.
+- Profile/settings and data-layer retry/cache template files.
 - Analytics/crash placeholders.
 - Localization scaffold.
 - Accessibility/privacy checklist docs.
@@ -115,6 +115,7 @@ Format requirements:
 - Quality gates (`lint`, `typecheck`, `test`) pass.
 - `test` runs real smoke checks (no placeholder scripts).
 - Enabled modules pass feature-contract checks.
+- Enabled modules include module-specific baseline tests.
 - Final report declares status and unresolved human dependencies explicitly.
 
 ## Scripts

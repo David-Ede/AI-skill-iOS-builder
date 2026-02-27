@@ -345,6 +345,28 @@ function Update-TsConfig {
   Write-Utf8NoBom -Path $tsconfigPath -Content ($json + "`n")
 }
 
+function Ensure-ExpoPlugin {
+  param(
+    [Parameter(Mandatory = $true)]
+    [object[]]$Plugins,
+    [Parameter(Mandatory = $true)]
+    [string]$PluginName
+  )
+
+  foreach ($plugin in $Plugins) {
+    if ($plugin -is [string] -and $plugin -eq $PluginName) {
+      return ,@($Plugins)
+    }
+    if ($plugin -is [System.Collections.IList] -and $plugin.Count -gt 0 -and $plugin[0] -eq $PluginName) {
+      return ,@($Plugins)
+    }
+  }
+
+  $updated = @($Plugins)
+  $updated += $PluginName
+  return ,$updated
+}
+
 function Configure-AppJson {
   param(
     [string]$ProjectDir,
@@ -369,22 +391,11 @@ function Configure-AppJson {
     Set-ObjectProperty -Object $expo -Name "plugins" -Value @()
   }
 
-  $plugins = @($expo.plugins)
-  $hasRouterPlugin = $false
-  foreach ($plugin in $plugins) {
-    if ($plugin -is [string] -and $plugin -eq "expo-router") {
-      $hasRouterPlugin = $true
-      break
-    }
-    if ($plugin -is [System.Collections.IList] -and $plugin.Count -gt 0 -and $plugin[0] -eq "expo-router") {
-      $hasRouterPlugin = $true
-      break
-    }
+  $plugins = Ensure-ExpoPlugin -Plugins @($expo.plugins) -PluginName "expo-router"
+  if ($ModuleFlags.ContainsKey("withPush") -and [bool]$ModuleFlags["withPush"]) {
+    $plugins = Ensure-ExpoPlugin -Plugins $plugins -PluginName "expo-notifications"
   }
 
-  if (-not $hasRouterPlugin) {
-    $plugins += "expo-router"
-  }
   Set-ObjectProperty -Object $expo -Name "plugins" -Value $plugins
 
   $extra = Ensure-ObjectProperty -Object $expo -Name "extra" -DefaultValue ([pscustomobject]@{})
@@ -399,7 +410,8 @@ function Configure-AppConfigTs {
     [string]$ProjectDir,
     [string]$SkillRoot,
     [string]$AppName,
-    [string]$BundleId
+    [string]$BundleId,
+    [hashtable]$ModuleFlags
   )
 
   $templatePath = Join-Path $SkillRoot "assets/templates/app.config.ts.template"
@@ -409,8 +421,13 @@ function Configure-AppConfigTs {
 
   $slug = $AppName.ToLowerInvariant().Replace(' ', '-')
   $scheme = $BundleId.Replace('.', '-')
+  $extraPluginsLiteral = ""
+  if ($ModuleFlags.ContainsKey("withPush") -and [bool]$ModuleFlags["withPush"]) {
+    $extraPluginsLiteral = ', "expo-notifications"'
+  }
+
   $template = [System.IO.File]::ReadAllText($templatePath)
-  $rendered = $template.Replace("__APP_NAME__", $AppName).Replace("__APP_SLUG__", $slug).Replace("__APP_SCHEME__", $scheme).Replace("__BUNDLE_ID__", $BundleId)
+  $rendered = $template.Replace("__APP_NAME__", $AppName).Replace("__APP_SLUG__", $slug).Replace("__APP_SCHEME__", $scheme).Replace("__BUNDLE_ID__", $BundleId).Replace("__EXTRA_PLUGINS__", $extraPluginsLiteral)
   Write-Utf8NoBom -Path (Join-Path $ProjectDir "app.config.ts") -Content $rendered
 }
 
@@ -491,7 +508,9 @@ if ($WithAuth.IsPresent) {
   Install-ExpoPackages -ProjectDir $projectDir -Packages @(
     "expo-secure-store",
     "expo-auth-session",
-    "expo-apple-authentication"
+    "expo-apple-authentication",
+    "expo-crypto",
+    "expo-web-browser"
   )
 }
 if ($WithPush.IsPresent) {
@@ -515,7 +534,7 @@ Install-DevPackages -ProjectDir $projectDir -Packages @(
   "jest-expo@~54.0.0",
   "@types/jest@^29.5.14",
   "@testing-library/react-native@^13.3.3",
-  "react-test-renderer@19.1.0"
+  "react-test-renderer@19.2.0"
 )
 
 Write-Step "Patching package scripts and entrypoint."
@@ -590,6 +609,20 @@ if ($WithAccessibilityChecks.IsPresent -or $WithPrivacyChecklist.IsPresent) {
 Copy-TemplateTree -TemplateDir (Join-Path $skillRoot "assets/templates/icons-splash") -DestinationRoot (Join-Path $projectDir "assets/placeholders") -Tokens $tokenMap
 Copy-TemplateTree -TemplateDir (Join-Path $skillRoot "assets/templates/testing") -DestinationRoot $projectDir -Tokens $tokenMap
 
+if (-not $WithAuth.IsPresent) {
+  $authTest = Join-Path $projectDir "__tests__/auth-oauth.test.ts"
+  if (Test-Path -LiteralPath $authTest) {
+    Remove-Item -LiteralPath $authTest -Force
+  }
+}
+
+if (-not $WithPush.IsPresent) {
+  $pushTest = Join-Path $projectDir "__tests__/notification-deeplink.test.ts"
+  if (Test-Path -LiteralPath $pushTest) {
+    Remove-Item -LiteralPath $pushTest -Force
+  }
+}
+
 if (-not $WithDataLayer.IsPresent) {
   $asyncTest = Join-Path $projectDir "__tests__/async-resource.test.ts"
   if (Test-Path -LiteralPath $asyncTest) {
@@ -623,7 +656,7 @@ $moduleFlags = [ordered]@{
 
 if ($UseAppConfigTs.IsPresent) {
   Write-Step "Configuring app.config.ts mode."
-  Configure-AppConfigTs -ProjectDir $projectDir -SkillRoot $skillRoot -AppName $AppName -BundleId $BundleId
+  Configure-AppConfigTs -ProjectDir $projectDir -SkillRoot $skillRoot -AppName $AppName -BundleId $BundleId -ModuleFlags $moduleFlags
   Configure-AppJson -ProjectDir $projectDir -BundleId $BundleId -ModuleFlags $moduleFlags
 }
 else {

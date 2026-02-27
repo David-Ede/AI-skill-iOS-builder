@@ -26,15 +26,19 @@ def load_json(path: Path) -> dict[str, Any]:
     return data
 
 
-def has_router_plugin(plugins: Any) -> bool:
+def has_plugin(plugins: Any, plugin_name: str) -> bool:
     if not isinstance(plugins, list):
         return False
     for plugin in plugins:
-        if isinstance(plugin, str) and plugin == "expo-router":
+        if isinstance(plugin, str) and plugin == plugin_name:
             return True
-        if isinstance(plugin, list) and plugin and plugin[0] == "expo-router":
+        if isinstance(plugin, list) and plugin and plugin[0] == plugin_name:
             return True
     return False
+
+
+def has_router_plugin(plugins: Any) -> bool:
+    return has_plugin(plugins, "expo-router")
 
 
 def check_app_json(app_json_path: Path) -> list[str]:
@@ -487,6 +491,7 @@ def main() -> int:
         metadata_path = project_dir / "skill.modules.json"
         modules: dict[str, bool] = {}
         release_branch = "main"
+        use_app_config_ts = False
         if metadata_path.exists():
             try:
                 metadata = load_json(metadata_path)
@@ -550,14 +555,89 @@ def main() -> int:
                     str(exc),
                 )
         else:
-            add_check(
-                checks,
-                "VC-015",
-                "skill.modules.json Parse",
-                "Blocker",
-                "fail",
-                "skill.modules.json is missing.",
-            )
+                add_check(
+                    checks,
+                    "VC-015",
+                    "skill.modules.json Parse",
+                    "Blocker",
+                    "fail",
+                    "skill.modules.json is missing.",
+                )
+
+        if bool(modules.get("withPush", False)):
+            if use_app_config_ts:
+                push_config_path = project_dir / "app.config.ts"
+                if not push_config_path.exists():
+                    add_check(
+                        checks,
+                        "VC-019",
+                        "Push Plugin Contract",
+                        "Blocker",
+                        "fail",
+                        "withPush is enabled but app.config.ts is missing.",
+                    )
+                else:
+                    config_content = push_config_path.read_text(encoding="utf-8-sig")
+                    if "expo-notifications" in config_content:
+                        add_check(
+                            checks,
+                            "VC-019",
+                            "Push Plugin Contract",
+                            "Blocker",
+                            "pass",
+                        )
+                    else:
+                        add_check(
+                            checks,
+                            "VC-019",
+                            "Push Plugin Contract",
+                            "Blocker",
+                            "fail",
+                            "withPush is enabled but app.config.ts is missing expo-notifications plugin.",
+                        )
+            else:
+                if not app_json_path.exists():
+                    add_check(
+                        checks,
+                        "VC-019",
+                        "Push Plugin Contract",
+                        "Blocker",
+                        "fail",
+                        "withPush is enabled but app.json is missing.",
+                    )
+                else:
+                    try:
+                        app_json = load_json(app_json_path)
+                        expo_cfg = app_json.get("expo", {})
+                        plugins = expo_cfg.get("plugins", []) if isinstance(expo_cfg, dict) else []
+                        has_push_plugin = has_plugin(plugins, "expo-notifications")
+                    except ValueError as exc:
+                        add_check(
+                            checks,
+                            "VC-019",
+                            "Push Plugin Contract",
+                            "Blocker",
+                            "fail",
+                            str(exc),
+                        )
+                    else:
+                        if has_push_plugin:
+                            add_check(
+                                checks,
+                                "VC-019",
+                                "Push Plugin Contract",
+                                "Blocker",
+                                "pass",
+                            )
+                        else:
+                            add_check(
+                                checks,
+                                "VC-019",
+                                "Push Plugin Contract",
+                                "Blocker",
+                                "fail",
+                                "withPush is enabled but app.json is missing expo-notifications plugin.",
+                            )
 
         if workflow_path.exists():
             workflow_content = workflow_path.read_text(encoding="utf-8-sig")
@@ -604,6 +684,8 @@ def main() -> int:
                     "app/sign-in.tsx",
                     "src/auth/AuthContext.tsx",
                     "src/auth/secureSession.ts",
+                    "src/auth/oauthProviders.ts",
+                    "__tests__/auth-oauth.test.ts",
                 ],
             ),
             (
@@ -612,12 +694,19 @@ def main() -> int:
                 [
                     "src/notifications/registerForPushNotifications.ts",
                     "src/notifications/NotificationProvider.tsx",
+                    "src/notifications/notificationDeepLink.ts",
+                    "__tests__/notification-deeplink.test.ts",
                 ],
             ),
             (
                 "withDataLayer",
                 "MC-005 Data Layer Contract",
-                ["src/data/apiClient.ts", "src/data/useAsyncResource.ts"],
+                [
+                    "src/data/apiClient.ts",
+                    "src/data/requestPolicy.ts",
+                    "src/data/useAsyncResource.ts",
+                    "__tests__/async-resource.test.ts",
+                ],
             ),
             (
                 "withAnalytics",

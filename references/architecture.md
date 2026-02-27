@@ -21,6 +21,7 @@
 - `package.json.main` must be `expo-router/entry`.
 - `app.json` or `app.config.ts` must include `ios.bundleIdentifier`.
 - Expo config plugins must include `expo-router`.
+- If `WithPush` is enabled, active Expo config must include `expo-notifications` plugin.
 - `eas.json.build.preview` and `eas.json.build.production` must exist.
 - `.gitignore` should include `.expo/` and `.expo-shared/`.
 - `skill.modules.json` must exist and reflect enabled feature flags.
@@ -32,6 +33,7 @@
   - `test`
 - `scripts.test` cannot be a placeholder/no-op.
 - Smoke tests must include app-shell coverage.
+- Enabled feature modules must include their contract test files.
 
 ## Compatibility Boundaries
 Blocked for this skill:

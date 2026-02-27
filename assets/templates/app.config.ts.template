@@ -9,7 +9,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     bundleIdentifier: "__BUNDLE_ID__",
     supportsTablet: true,
   },
-  plugins: ["expo-router"],
+  plugins: ["expo-router"__EXTRA_PLUGINS__],
   experiments: {
     typedRoutes: true,
   },
