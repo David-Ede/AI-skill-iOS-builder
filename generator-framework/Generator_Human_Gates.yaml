@@ -1,0 +1,646 @@
+schemaVersion: 1
+contractId: ghg-v1
+name: Generator Human Gates
+profileId: rn-spg-v1
+status: active
+effectiveDate: 2026-02-17
+
+purpose: >
+  Define required human-supplied inputs, credentials, approvals, and release decisions
+  that cannot be fully automated in single-prompt generation runs.
+
+relatedContracts:
+  - Generator_Input_Contracts.md
+  - Generator_Output_Contract.md
+  - Generator_Prompt_Protocol.md
+  - Generator_Failure_Playbook.md
+  - Repo_Check_Gates.md
+
+sourceDocs:
+  - planning/Store-Launch-Inputs.md
+  - planning/Human-Steps-Platform-Expansion.md
+  - planning/Master-Human-Inputs-Platform-Expansion.md
+  - planning/App-Store-Play-Compliance-Checklist.md
+  - planning/Privacy-Data-Safety-Templates.md
+
+policy:
+  executionMode: collect-all
+  rootCauseClass: RC-HUMAN-GATE
+  neverFakeCompletion: true
+  allowedGateStates:
+    - satisfied
+    - missing
+    - waived
+    - not_applicable
+  unresolvedAllowedForPartial:
+    - store_credentials
+    - production_secrets
+    - legal_or_policy_approval
+    - app_store_account_provisioning
+  waiverRequirements:
+    requiredFields:
+      - gateId
+      - approver
+      - reason
+      - expiresAt
+    maxDurationDays: 30
+
+statusComputation:
+  passWhen:
+    - no blocker gate for current phase is missing
+    - no conditional gate for current phase is missing
+    - unresolvedHumanDependencies is empty
+  partialWhen:
+    - no blocker gate for current phase is missing
+    - one or more conditional gates are missing or waived
+  failWhen:
+    - any blocker gate for current phase is missing
+    - required preflight fields are missing from product.config.yaml
+    - conflicting identity values are detected across sources of truth
+    - a real secret value is written to tracked source output
+  strictReleaseOverrides:
+    mode: release-submission
+    treatConditionalAsBlocker:
+      - HG-010
+      - HG-011
+      - HG-012
+      - HG-013
+
+reportingContract:
+  summaryFile: planning/generated/generation.summary.md
+  reportFile: reports/generation.report.json
+  unresolvedDependencyRecord:
+    requiredFields:
+      - gateId
+      - gateName
+      - blocking
+      - severity
+      - missingSlots
+      - requiredFor
+      - owner
+      - nextAction
+      - references
+  failureRecordTemplate: Generator_Failure_Playbook.md
+
+preflightGate:
+  id: HG-000
+  gateName: Product Config Human Inputs
+  blocking: Blocker
+  severity: S1
+  requiredFor:
+    - bootstrap
+    - input-validation
+  sourceOfTruth: product.config.yaml
+  requiredFields:
+    - productName
+    - slug
+    - ios.bundleIdentifier
+    - android.package
+    - expo.scheme
+    - firebase.projectId
+    - services.billing.web
+    - services.billing.native
+    - release.channels
+    - release.runtimeVersionPolicy
+    - release.otaEnabled
+  onMissing:
+    runStatus: fail
+    errorCode: IC-004
+    rootCauseClass: RC-HUMAN-GATE
+    nextAction: Provide missing product identity and release config values.
+
+gates:
+  - id: HG-001
+    gateName: Accounts and Console Access
+    category: provisioning
+    blocking: Conditional
+    severity: S2
+    owner: release-manager
+    requiredFor:
+      - generation-pass
+      - release-submission
+    dependsOn: []
+    sourceRefs:
+      - planning/Human-Steps-Platform-Expansion.md
+      - planning/Master-Human-Inputs-Platform-Expansion.md
+    inputSlots:
+      - key: appleDeveloperMembershipActive
+        description: Apple Developer Program membership is active.
+        required: true
+        secret: false
+      - key: appStoreConnectAccessConfirmed
+        description: App Store Connect role is App Manager or Admin.
+        required: true
+        secret: false
+      - key: googlePlayDeveloperAccountActive
+        description: Google Play Developer account is active.
+        required: true
+        secret: false
+      - key: firebaseProjectAccessConfirmed
+        description: Editor-level access to target Firebase project exists.
+        required: true
+        secret: false
+      - key: expoEASAccessConfirmed
+        description: Expo/EAS project access is available for build owner.
+        required: true
+        secret: false
+    completionCriteria:
+      - All required console accounts are active.
+      - Human owner can access Apple, Play, Firebase, and Expo dashboards.
+    unresolvedMitigation: Track missing account owner and expected ETA.
+
+  - id: HG-002
+    gateName: App Identity and Store App Records
+    category: app-identity
+    blocking: Conditional
+    severity: S2
+    owner: product-owner
+    requiredFor:
+      - generation-pass
+      - release-submission
+    dependsOn:
+      - HG-001
+    sourceRefs:
+      - planning/Store-Launch-Inputs.md
+      - planning/Human-Steps-Platform-Expansion.md
+    inputSlots:
+      - key: appNameFinal
+        description: Store-facing app name is finalized.
+        required: true
+        secret: false
+      - key: iosBundleIdReserved
+        description: iOS bundle identifier is reserved in Apple systems.
+        required: true
+        secret: false
+      - key: androidPackageReserved
+        description: Android package is reserved in Play Console.
+        required: true
+        secret: false
+      - key: appStoreConnectAppId
+        description: App Store Connect app record exists (App ID and SKU).
+        required: true
+        secret: false
+      - key: playConsoleAppId
+        description: Play Console app record exists.
+        required: true
+        secret: false
+      - key: easProjectId
+        description: EAS project ID created and mapped to app config.
+        required: true
+        secret: false
+    completionCriteria:
+      - App identity values are consistent across product config and store consoles.
+      - IDs are recorded in planning/Store-Launch-Inputs.md.
+    unresolvedMitigation: Keep placeholder IDs only for non-release runs and mark partial.
+
+  - id: HG-003
+    gateName: Firebase Native Registration and App Check
+    category: backend-config
+    blocking: Conditional
+    severity: S2
+    owner: mobile-lead
+    requiredFor:
+      - generation-pass
+      - release-submission
+    dependsOn:
+      - HG-002
+    sourceRefs:
+      - planning/Human-Steps-Platform-Expansion.md
+      - planning/Privacy-Data-Safety-Templates.md
+    inputSlots:
+      - key: firebaseIosAppId
+        description: iOS app registered in Firebase.
+        required: true
+        secret: false
+      - key: firebaseAndroidAppId
+        description: Android app registered in Firebase.
+        required: true
+        secret: false
+      - key: googleServiceInfoPlistProvisioned
+        description: GoogleService-Info.plist available for native build.
+        required: true
+        secret: true
+      - key: googleServicesJsonProvisioned
+        description: google-services.json available for native build.
+        required: true
+        secret: true
+      - key: appCheckProvidersConfigured
+        description: iOS and Android App Check providers are selected.
+        required: true
+        secret: false
+      - key: appCheckEnforcementMode
+        description: App Check enforcement mode documented (monitoring or enforce).
+        required: true
+        secret: false
+    completionCriteria:
+      - Native Firebase app registrations exist for both platforms.
+      - Config files are provided through secure channels, never committed as secrets.
+    unresolvedMitigation: Allow local fallback mode and mark partial until credentials supplied.
+
+  - id: HG-004
+    gateName: Push Notification Provider Setup
+    category: notifications
+    blocking: Conditional
+    severity: S2
+    owner: mobile-lead
+    requiredFor:
+      - release-submission
+    dependsOn:
+      - HG-003
+    sourceRefs:
+      - planning/Human-Steps-Platform-Expansion.md
+    inputSlots:
+      - key: apnsAuthKeyCreated
+        description: APNs auth key (.p8) created with key ID and team ID.
+        required: true
+        secret: true
+      - key: apnsUploadedToFirebase
+        description: APNs key uploaded in Firebase Cloud Messaging settings.
+        required: true
+        secret: false
+      - key: fcmAndroidConfigured
+        description: Android FCM sender and config validated.
+        required: true
+        secret: false
+      - key: pushSmokeTestPassed
+        description: Test push received on iOS and Android test devices.
+        required: true
+        secret: false
+    completionCriteria:
+      - Push path is verified end-to-end for both platforms.
+    unresolvedMitigation: Disable non-critical push features and block release channel escalation.
+
+  - id: HG-005
+    gateName: IAP Catalog and Pricing
+    category: billing-products
+    blocking: Conditional
+    severity: S2
+    owner: product-owner
+    requiredFor:
+      - release-submission
+    dependsOn:
+      - HG-002
+    sourceRefs:
+      - planning/Store-Launch-Inputs.md
+      - planning/App-Store-Play-Compliance-Checklist.md
+    inputSlots:
+      - key: iosSubscriptionProductIds
+        description: iOS subscription products created in App Store Connect.
+        required: true
+        secret: false
+      - key: androidSubscriptionProductIds
+        description: Android subscription products and base plans created in Play Console.
+        required: true
+        secret: false
+      - key: pricingTiersApproved
+        description: Monthly and yearly pricing tiers are approved.
+        required: true
+        secret: false
+      - key: regionalAvailabilityApproved
+        description: Regional availability and currency mapping confirmed.
+        required: true
+        secret: false
+      - key: subscriptionTermsApproved
+        description: Subscription disclosure terms are reviewed and approved.
+        required: true
+        secret: false
+    completionCriteria:
+      - Product IDs are stable and mapped to entitlements.
+      - Pricing and terms match in-app disclosures.
+    unresolvedMitigation: Keep billing features behind release gate and mark partial.
+
+  - id: HG-006
+    gateName: IAP Server Credentials and Notifications
+    category: billing-infra
+    blocking: Conditional
+    severity: S2
+    owner: backend-lead
+    requiredFor:
+      - release-submission
+    dependsOn:
+      - HG-005
+    sourceRefs:
+      - planning/Human-Steps-Platform-Expansion.md
+      - planning/Store-Launch-Inputs.md
+    inputSlots:
+      - key: appStoreServerApiKeyId
+        description: App Store Server API key ID recorded.
+        required: true
+        secret: false
+      - key: appStoreServerIssuerId
+        description: App Store Server API issuer ID recorded.
+        required: true
+        secret: false
+      - key: appStoreNotificationsEndpoint
+        description: App Store Server Notifications v2 endpoint configured.
+        required: true
+        secret: false
+      - key: playServiceAccountEmail
+        description: Google Play service account created and linked.
+        required: true
+        secret: false
+      - key: rtdnPubSubTopic
+        description: Google Play RTDN topic configured and linked.
+        required: true
+        secret: false
+      - key: validationSecretsProvisioned
+        description: Credential material stored in secret manager and injected to backend/CI.
+        required: true
+        secret: true
+    completionCriteria:
+      - Receipt validation and subscription notifications operate in staging.
+    unresolvedMitigation: Keep purchase validation disabled for production and mark partial.
+
+  - id: HG-007
+    gateName: Legal URLs and Data Rights Flows
+    category: legal-and-policy
+    blocking: Conditional
+    severity: S2
+    owner: legal
+    requiredFor:
+      - generation-pass
+      - release-submission
+    dependsOn:
+      - HG-002
+    sourceRefs:
+      - planning/Store-Launch-Inputs.md
+      - planning/App-Store-Play-Compliance-Checklist.md
+      - planning/Privacy-Data-Safety-Templates.md
+    inputSlots:
+      - key: privacyPolicyUrlLive
+        description: Public privacy policy URL is live and accurate.
+        required: true
+        secret: false
+      - key: termsUrlLive
+        description: Public terms URL is live and accurate.
+        required: true
+        secret: false
+      - key: deleteAccountUrlLive
+        description: Public account deletion URL is reachable.
+        required: true
+        secret: false
+      - key: dataExportFlowApproved
+        description: In-app data export behavior approved.
+        required: true
+        secret: false
+      - key: retentionAndDeletionSlaApproved
+        description: Data retention and deletion SLA approved.
+        required: true
+        secret: false
+      - key: trackingDecisionRecorded
+        description: ATT or tracking policy decision documented.
+        required: true
+        secret: false
+    completionCriteria:
+      - Legal URLs and user data rights flows are externally verifiable.
+      - Policy decisions are captured in planning docs.
+    unresolvedMitigation: Continue in partial status with explicit legal dependency list.
+
+  - id: HG-008
+    gateName: Store Listing Metadata and Assets
+    category: listing
+    blocking: Conditional
+    severity: S2
+    owner: marketing
+    requiredFor:
+      - release-submission
+    dependsOn:
+      - HG-002
+    sourceRefs:
+      - planning/Store-Launch-Inputs.md
+      - planning/App-Store-Play-Compliance-Checklist.md
+    inputSlots:
+      - key: appStoreMetadataComplete
+        description: App Store listing fields are complete.
+        required: true
+        secret: false
+      - key: playStoreMetadataComplete
+        description: Play Store listing fields are complete.
+        required: true
+        secret: false
+      - key: screenshotsUploaded
+        description: Required screenshots uploaded and validated in both stores.
+        required: true
+        secret: false
+      - key: appIconFinalized
+        description: Final app icon approved for iOS and Android.
+        required: true
+        secret: false
+      - key: featureGraphicUploaded
+        description: Play feature graphic uploaded.
+        required: true
+        secret: false
+    completionCriteria:
+      - Store listing previews render without warnings.
+    unresolvedMitigation: Hold release submission and mark gate unresolved.
+
+  - id: HG-009
+    gateName: Review Access and QA Evidence
+    category: review-readiness
+    blocking: Conditional
+    severity: S2
+    owner: qa-lead
+    requiredFor:
+      - release-submission
+    dependsOn:
+      - HG-008
+    sourceRefs:
+      - planning/Human-Steps-Platform-Expansion.md
+      - planning/Store-Launch-Inputs.md
+    inputSlots:
+      - key: reviewTestAccountProvided
+        description: Non-admin test account exists for store review.
+        required: true
+        secret: true
+      - key: reviewStepsDocumented
+        description: Reviewer login and feature navigation steps are documented.
+        required: true
+        secret: false
+      - key: reviewNotesSavedInStores
+        description: Review notes and credentials saved in both store consoles.
+        required: true
+        secret: false
+      - key: manualQAPassOnDeviceMatrix
+        description: Manual QA pass completed on required device matrix.
+        required: true
+        secret: false
+      - key: crashAndPerformanceBaselinesValidated
+        description: Crash-free and performance baselines validated.
+        required: true
+        secret: false
+    completionCriteria:
+      - Reviewer can sign in and reach gated flows without manual intervention.
+    unresolvedMitigation: Block submission and record missing QA artifacts.
+
+  - id: HG-010
+    gateName: Signing and Build Credentials
+    category: signing
+    blocking: Conditional
+    severity: S1
+    owner: mobile-lead
+    requiredFor:
+      - generation-pass
+      - release-submission
+    dependsOn:
+      - HG-001
+      - HG-002
+    sourceRefs:
+      - planning/Human-Steps-Platform-Expansion.md
+      - apps/native/eas.json
+    inputSlots:
+      - key: iosSigningCredentialsReady
+        description: iOS distribution certificate and provisioning profile are valid.
+        required: true
+        secret: true
+      - key: androidSigningCredentialsReady
+        description: Android keystore or Play App Signing setup is valid.
+        required: true
+        secret: true
+      - key: easProfilesValidated
+        description: EAS profiles for development, preview, and production are valid.
+        required: true
+        secret: false
+      - key: releaseBuildSmokeProduced
+        description: Release-mode build produced successfully for both platforms.
+        required: true
+        secret: false
+    completionCriteria:
+      - Credentials are valid and release builds can be produced repeatably.
+    unresolvedMitigation: Keep run partial and block strict release mode.
+
+  - id: HG-011
+    gateName: CI Runtime and Secret Provisioning
+    category: ci-and-secrets
+    blocking: Conditional
+    severity: S1
+    owner: devops
+    requiredFor:
+      - generation-pass
+      - release-submission
+    dependsOn:
+      - HG-003
+      - HG-006
+      - HG-010
+    sourceRefs:
+      - AGENTS.md
+      - Repo_Check_Gates.md
+      - planning/Human-Steps-Platform-Expansion.md
+    inputSlots:
+      - key: requiredCiEnvVarsPresent
+        description: Required CI vars are configured for target environments.
+        required: true
+        secret: false
+        expectedEnvVars:
+          - NEXT_PUBLIC_SITE_URL
+          - NEXT_PUBLIC_FIREBASE_PROJECT_ID
+          - NEXT_PUBLIC_FIREBASE_API_KEY
+          - EXPO_PUBLIC_API_BASE_URL
+          - EXPO_PUBLIC_FIREBASE_PROJECT_ID
+          - EXPO_PUBLIC_FIREBASE_API_KEY
+      - key: platformSecretsProvisioned
+        description: Firebase admin, Stripe, Sentry, Upstash, and IAP validation secrets are provisioned.
+        required: true
+        secret: true
+      - key: nodeVersionPolicyVerified
+        description: Local and CI Node versions match compatibility matrix expectations.
+        required: true
+        secret: false
+      - key: fullCiRunGreen
+        description: Full CI path passes with configured secrets and runtime values.
+        required: true
+        secret: false
+    completionCriteria:
+      - CI and release environments can run required gates without manual secret patching.
+    unresolvedMitigation: Mark partial and include exact missing variable names in summary.
+
+  - id: HG-012
+    gateName: Release Track, Monitoring, and Rollback Plan
+    category: release-ops
+    blocking: Conditional
+    severity: S2
+    owner: release-manager
+    requiredFor:
+      - release-submission
+    dependsOn:
+      - HG-009
+      - HG-010
+      - HG-011
+    sourceRefs:
+      - planning/Human-Steps-Platform-Expansion.md
+      - planning/Store-Launch-Inputs.md
+    inputSlots:
+      - key: releaseTrackSelected
+        description: Initial track selected (internal, closed, or production).
+        required: true
+        secret: false
+      - key: rolloutPercentageDefined
+        description: Phased rollout percentage and timeline defined.
+        required: true
+        secret: false
+      - key: monitoringThresholdsDefined
+        description: Crash-free and performance thresholds documented.
+        required: true
+        secret: false
+      - key: rollbackOwnerAssigned
+        description: Named owner can execute rollback.
+        required: true
+        secret: false
+      - key: rollbackProcedureDocumented
+        description: Rollback steps documented and reviewed.
+        required: true
+        secret: false
+    completionCriteria:
+      - Release can be paused or rolled back using preapproved process.
+    unresolvedMitigation: Hold submission and track dependency in release decision log.
+
+  - id: HG-013
+    gateName: Final Cross-Functional Sign-Offs
+    category: approvals
+    blocking: Conditional
+    severity: S2
+    owner: release-manager
+    requiredFor:
+      - release-submission
+    dependsOn:
+      - HG-007
+      - HG-012
+    sourceRefs:
+      - planning/Master-Human-Inputs-Platform-Expansion.md
+    inputSlots:
+      - key: productQaSignoff
+        description: Final product QA sign-off complete.
+        required: true
+        secret: false
+      - key: legalComplianceSignoff
+        description: Legal and compliance sign-off complete.
+        required: true
+        secret: false
+      - key: releaseManagerSignoff
+        description: Release manager sign-off complete.
+        required: true
+        secret: false
+      - key: storeSubmissionApproval
+        description: Explicit go/no-go approval recorded for store submission.
+        required: true
+        secret: false
+    completionCriteria:
+      - Required organizational approvals are documented with date and approver.
+    unresolvedMitigation: Keep status partial and block submission approval flow.
+
+implementationNotes:
+  recommendedCheckScript: node scripts/check-human-gates.js
+  recommendedReportFile: reports/human-gates.report.json
+  outputStatusMapping:
+    satisfied: pass
+    missing:
+      blocker: fail
+      conditional: partial
+    waived: partial
+    not_applicable: pass
+
+changelog:
+  - date: 2026-02-17
+    changes:
+      - Created initial human gates contract for single-prompt generator runs.
+      - Added HG-000 preflight gate and HG-001 to HG-013 release-readiness gates.
+      - Added run status policy, strict release overrides, and unresolved dependency report schema.
