@@ -1,0 +1,4 @@
+interface:
+  display_name: "Expo iOS App Builder"
+  short_description: "Build iOS-first Expo apps with feature modules and EAS delivery."
+  default_prompt: "Use $expo-ios-app-builder to scaffold a new iOS-first Expo Router app with optional UI/auth/push/data modules and EAS/TestFlight setup."

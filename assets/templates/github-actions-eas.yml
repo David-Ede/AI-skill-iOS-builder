@@ -1,0 +1,66 @@
+﻿name: EAS iOS Pipeline
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - __RELEASE_BRANCH__
+
+env:
+  NODE_VERSION: "22"
+  EAS_AUTO_SUBMIT: "false"
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm run test
+
+  build_ios:
+    needs: quality
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/__RELEASE_BRANCH__'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: 10.2.1
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Build iOS (production)
+        run: npx eas build --platform ios --profile production --non-interactive
+
+      - name: Submit to TestFlight
+        if: env.EAS_AUTO_SUBMIT == 'true'
+        run: npx eas submit --platform ios --profile production --latest --non-interactive

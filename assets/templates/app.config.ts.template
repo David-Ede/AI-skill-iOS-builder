@@ -1,0 +1,16 @@
+﻿import { ConfigContext, ExpoConfig } from "expo/config";
+
+export default ({ config }: ConfigContext): ExpoConfig => ({
+  ...config,
+  name: "__APP_NAME__",
+  slug: "__APP_SLUG__",
+  scheme: "__APP_SCHEME__",
+  ios: {
+    bundleIdentifier: "__BUNDLE_ID__",
+    supportsTablet: true,
+  },
+  plugins: ["expo-router"],
+  experiments: {
+    typedRoutes: true,
+  },
+});
