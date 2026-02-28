@@ -40,6 +40,7 @@ Optional:
 - `WithLocalization`
 - `WithAccessibilityChecks`
 - `WithPrivacyChecklist`
+- `WithDeploymentLayer` (default: `true`)
 
 ## Outputs
 Files created or modified:
@@ -50,6 +51,7 @@ Files created or modified:
 - `<project>/jest.config.js`
 - `<project>/__tests__/app-shell.test.tsx`
 - `<project>/eas.json`
+- `<project>/release/human-inputs.md` (when `WithDeploymentLayer` is enabled)
 - `<project>/.github/workflows/eas-ios.yml` (after CI setup)
 - `<project>/skill.modules.json`
 
@@ -61,12 +63,14 @@ Feature-module outputs (enabled by flags):
 - Analytics/crash placeholders.
 - Localization scaffold.
 - Accessibility/privacy checklist docs.
+- Deployment human-input intake file for App Store/TestFlight data collection.
 
 Format requirements:
 - JSON files must be valid UTF-8 and machine parseable.
 - `package.json.main` must be `expo-router/entry`.
 - `eas.json` must include `build.preview` and `build.production`.
 - `scripts.test` must run real smoke tests (no placeholder/no-op script).
+- `release/human-inputs.md` uses `KEY = value` entries; quotes are optional.
 
 ## Safety And Constraints
 - Never write real secrets into tracked source files.
@@ -147,3 +151,4 @@ Format requirements:
 - Use `assets/templates/github-actions-eas.yml` for CI workflow.
 - Use `assets/templates/feature-modules/*` for module scaffolding.
 - Use `assets/templates/icons-splash/*` for placeholder icon/splash replacement checklist.
+- Use `assets/templates/release/*` for deployment intake templates.

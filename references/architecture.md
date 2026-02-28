@@ -25,6 +25,7 @@
 - `eas.json.build.preview` and `eas.json.build.production` must exist.
 - `.gitignore` should include `.expo/` and `.expo-shared/`.
 - `skill.modules.json` must exist and reflect enabled feature flags.
+- If `withDeploymentLayer` is enabled in `skill.modules.json`, `release/human-inputs.md` must exist.
 
 ## Quality Contract
 - Keep scripts present in `package.json`:

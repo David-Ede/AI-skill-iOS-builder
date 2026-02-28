@@ -20,6 +20,8 @@ Run in this order:
 | `QG-005` | EAS Build Preview | `npx eas build --platform ios --profile preview` | Conditional |
 | `QG-006` | EAS Submit Production | `npx eas submit --platform ios --profile production --latest` | Conditional |
 
+When `WithDeploymentLayer` is enabled, contract validation also checks `release/human-inputs.md` for required `KEY = value` fields.
+
 ## Baseline Local Checks
 Run these before build submit:
 ```powershell
@@ -63,3 +65,4 @@ If `--report-path` is provided to the validator, expect:
 - `moduleChecks[]`
 - `failedChecks[]`
 - `warnings[]`
+- `unresolvedHumanDependencies[]`

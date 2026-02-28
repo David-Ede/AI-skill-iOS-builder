@@ -63,6 +63,16 @@ Actions:
 - Verify app-specific password or API key configuration.
 - Retry submit with explicit `--latest` build.
 
+## Deployment Human Input Contract Failures
+Symptoms:
+- Validator reports missing or invalid `release/human-inputs.md` fields.
+
+Actions:
+- Ensure file exists at `release/human-inputs.md`.
+- Fill values using `KEY = value` lines (quotes optional).
+- Use `yes` or `no` for boolean fields.
+- Ensure `IOS_BUNDLE_ID` and `RELEASE_BRANCH` match project config.
+
 ## CI Workflow Cannot Build
 Symptoms:
 - GitHub Action fails before build or on auth.

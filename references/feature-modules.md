@@ -11,11 +11,13 @@
 - `WithLocalization`: localization scaffolding.
 - `WithAccessibilityChecks`: accessibility checklist doc.
 - `WithPrivacyChecklist`: privacy checklist doc.
+- `WithDeploymentLayer`: release human-input intake doc (`release/human-inputs.md`).
 
 ## Default Behavior
 - `WithTabs` implies `WithUiFoundation`.
 - `WithProfile` implies `WithUiFoundation`.
 - Other modules are opt-in.
+- `WithDeploymentLayer` defaults to enabled.
 
 ## Compatibility Rules
 - `WithUiFoundation` and `WithTabs` are compatible and intended together.
@@ -34,8 +36,10 @@ When enabled, each module must create files under these roots:
 - Analytics/crash: `src/observability/*`
 - Localization: `src/localization/*`
 - Accessibility/privacy: `docs/*-checklist.md`
+- Deployment layer: `release/human-inputs.md`
 
 ## Validator Expectations
 - `skill.modules.json` must exist with boolean flags.
 - Enabled flags require matching module contract files (including module-specific tests).
 - Disabled flags do not require module contract files.
+- When `withDeploymentLayer` is enabled, validator checks `release/human-inputs.md` for required `KEY = value` entries.

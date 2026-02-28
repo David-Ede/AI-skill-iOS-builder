@@ -183,6 +183,107 @@ def check_required_files(project_dir: Path, rel_paths: list[str]) -> list[str]:
     return missing
 
 
+REQUIRED_HUMAN_INPUT_FIELDS: tuple[tuple[str, str], ...] = (
+    ("APP_NAME", "product-owner"),
+    ("IOS_BUNDLE_ID", "mobile-lead"),
+    ("ASC_APP_ID", "release-manager"),
+    ("ASC_SKU", "product-owner"),
+    ("PRIMARY_LANGUAGE", "product-owner"),
+    ("APPLE_DEV_MEMBERSHIP_ACTIVE", "release-manager"),
+    ("APP_STORE_CONNECT_ROLE_OK", "release-manager"),
+    ("EXPO_EAS_ACCESS_OK", "mobile-lead"),
+    ("GITHUB_REPO_READY", "mobile-lead"),
+    ("RELEASE_BRANCH", "mobile-lead"),
+    ("GITHUB_SECRET_EXPO_TOKEN", "release-manager"),
+    ("ASC_API_KEY_CONFIGURED", "release-manager"),
+    ("SUPPORT_URL", "product-owner"),
+    ("PRIVACY_POLICY_URL", "legal"),
+)
+
+YES_NO_HUMAN_INPUT_FIELDS: tuple[str, ...] = (
+    "APPLE_DEV_MEMBERSHIP_ACTIVE",
+    "APP_STORE_CONNECT_ROLE_OK",
+    "EXPO_EAS_ACCESS_OK",
+    "GITHUB_REPO_READY",
+    "ASC_API_KEY_CONFIGURED",
+    "SCREENSHOTS_READY",
+    "TESTFLIGHT_INTERNAL_TESTERS_READY",
+    "REVIEW_NOTES_READY",
+)
+
+
+def strip_optional_quotes(value: str) -> str:
+    normalized = value.strip()
+    if len(normalized) >= 2:
+        if normalized[0] == normalized[-1] and normalized[0] in ("'", '"'):
+            return normalized[1:-1].strip()
+    return normalized
+
+
+def parse_human_inputs_markdown(path: Path) -> dict[str, str]:
+    values: dict[str, str] = {}
+    content = path.read_text(encoding="utf-8-sig")
+    for line in content.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        match = re.match(r"^([A-Z0-9_]+)\s*=\s*(.*)$", stripped)
+        if not match:
+            continue
+        key = match.group(1)
+        raw_value = match.group(2)
+        values[key] = strip_optional_quotes(raw_value)
+    return values
+
+
+def extract_app_identity(project_dir: Path, use_app_config_ts: bool) -> dict[str, str]:
+    identity: dict[str, str] = {
+        "bundleIdentifier": "",
+        "version": "",
+        "buildNumber": "",
+    }
+
+    app_json_path = project_dir / "app.json"
+    app_config_path = project_dir / "app.config.ts"
+
+    if not use_app_config_ts and app_json_path.exists():
+        try:
+            data = load_json(app_json_path)
+        except ValueError:
+            return identity
+        expo = data.get("expo", {})
+        if isinstance(expo, dict):
+            ios = expo.get("ios", {})
+            if isinstance(ios, dict):
+                bundle = ios.get("bundleIdentifier")
+                build_number = ios.get("buildNumber")
+                if isinstance(bundle, str):
+                    identity["bundleIdentifier"] = bundle.strip()
+                if isinstance(build_number, str):
+                    identity["buildNumber"] = build_number.strip()
+            version = expo.get("version")
+            if isinstance(version, str):
+                identity["version"] = version.strip()
+        return identity
+
+    if not app_config_path.exists():
+        return identity
+
+    content = app_config_path.read_text(encoding="utf-8-sig")
+    bundle_match = re.search(r"bundleIdentifier\s*:\s*['\"]([^'\"]+)['\"]", content)
+    version_match = re.search(r"\bversion\s*:\s*['\"]([^'\"]+)['\"]", content)
+    build_number_match = re.search(r"buildNumber\s*:\s*['\"]([^'\"]+)['\"]", content)
+
+    if bundle_match:
+        identity["bundleIdentifier"] = bundle_match.group(1).strip()
+    if version_match:
+        identity["version"] = version_match.group(1).strip()
+    if build_number_match:
+        identity["buildNumber"] = build_number_match.group(1).strip()
+
+    return identity
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--project-dir", required=True)
@@ -198,6 +299,7 @@ def main() -> int:
     checks: list[dict[str, Any]] = []
     module_checks: list[dict[str, Any]] = []
     warnings: list[str] = []
+    unresolved_human_dependencies: list[dict[str, str]] = []
 
     if not project_dir.exists() or not project_dir.is_dir():
         add_check(
@@ -492,6 +594,7 @@ def main() -> int:
         modules: dict[str, bool] = {}
         release_branch = "main"
         use_app_config_ts = False
+        with_deployment_layer = False
         if metadata_path.exists():
             try:
                 metadata = load_json(metadata_path)
@@ -501,6 +604,7 @@ def main() -> int:
                 raw_modules = metadata.get("modules", {})
                 if isinstance(raw_modules, dict):
                     modules = {k: bool(v) for k, v in raw_modules.items()}
+                with_deployment_layer = bool(modules.get("withDeploymentLayer", False))
                 add_check(
                     checks,
                     "VC-015",
@@ -661,6 +765,197 @@ def main() -> int:
                     f"Workflow does not appear to target release branch '{release_branch}'.",
                 )
 
+        if with_deployment_layer:
+            human_inputs_path = project_dir / "release" / "human-inputs.md"
+            if human_inputs_path.exists():
+                add_check(
+                    checks,
+                    "VC-020",
+                    "Deployment Human Input File Presence",
+                    "Conditional",
+                    "pass",
+                )
+                human_inputs = parse_human_inputs_markdown(human_inputs_path)
+
+                missing_required_fields: list[str] = []
+                for key, owner in REQUIRED_HUMAN_INPUT_FIELDS:
+                    if not human_inputs.get(key):
+                        missing_required_fields.append(key)
+                        unresolved_human_dependencies.append(
+                            {
+                                "field": key,
+                                "owner": owner,
+                                "nextAction": "Fill value in release/human-inputs.md",
+                            }
+                        )
+
+                if missing_required_fields:
+                    add_check(
+                        checks,
+                        "VC-021",
+                        "Deployment Human Input Required Fields",
+                        "Conditional",
+                        "fail",
+                        "Missing required values: " + ", ".join(missing_required_fields),
+                    )
+                else:
+                    add_check(
+                        checks,
+                        "VC-021",
+                        "Deployment Human Input Required Fields",
+                        "Conditional",
+                        "pass",
+                    )
+
+                invalid_yes_no_fields: list[str] = []
+                for field in YES_NO_HUMAN_INPUT_FIELDS:
+                    value = human_inputs.get(field, "")
+                    if value and value.strip().lower() not in {"yes", "no"}:
+                        invalid_yes_no_fields.append(field)
+                if invalid_yes_no_fields:
+                    add_check(
+                        checks,
+                        "VC-022",
+                        "Deployment Human Input Boolean Field Format",
+                        "Conditional",
+                        "fail",
+                        "Expected yes/no values for: "
+                        + ", ".join(invalid_yes_no_fields),
+                    )
+                else:
+                    add_check(
+                        checks,
+                        "VC-022",
+                        "Deployment Human Input Boolean Field Format",
+                        "Conditional",
+                        "pass",
+                    )
+
+                app_identity = extract_app_identity(project_dir, use_app_config_ts)
+                mismatches: list[str] = []
+                file_bundle = human_inputs.get("IOS_BUNDLE_ID", "").strip()
+                file_version = human_inputs.get("APP_VERSION", "").strip()
+                file_build_number = human_inputs.get("IOS_BUILD_NUMBER", "").strip()
+                file_release_branch = human_inputs.get("RELEASE_BRANCH", "").strip()
+
+                if (
+                    file_bundle
+                    and app_identity.get("bundleIdentifier")
+                    and file_bundle != app_identity["bundleIdentifier"]
+                ):
+                    mismatches.append(
+                        "IOS_BUNDLE_ID does not match app config bundleIdentifier"
+                    )
+                if (
+                    file_version
+                    and app_identity.get("version")
+                    and file_version != app_identity["version"]
+                ):
+                    mismatches.append("APP_VERSION does not match app config version")
+                if (
+                    file_build_number
+                    and app_identity.get("buildNumber")
+                    and file_build_number != app_identity["buildNumber"]
+                ):
+                    mismatches.append(
+                        "IOS_BUILD_NUMBER does not match app config ios.buildNumber"
+                    )
+                if file_release_branch and file_release_branch != release_branch:
+                    mismatches.append(
+                        "RELEASE_BRANCH does not match skill.modules.json releaseBranch"
+                    )
+
+                if mismatches:
+                    add_check(
+                        checks,
+                        "VC-023",
+                        "Deployment Human Input Cross-File Alignment",
+                        "Conditional",
+                        "fail",
+                        " | ".join(mismatches),
+                    )
+                else:
+                    add_check(
+                        checks,
+                        "VC-023",
+                        "Deployment Human Input Cross-File Alignment",
+                        "Conditional",
+                        "pass",
+                    )
+            else:
+                add_check(
+                    checks,
+                    "VC-020",
+                    "Deployment Human Input File Presence",
+                    "Conditional",
+                    "fail",
+                    "release/human-inputs.md is missing while withDeploymentLayer is enabled.",
+                )
+                add_check(
+                    checks,
+                    "VC-021",
+                    "Deployment Human Input Required Fields",
+                    "Conditional",
+                    "skipped",
+                    "Skipped because release/human-inputs.md is missing.",
+                )
+                add_check(
+                    checks,
+                    "VC-022",
+                    "Deployment Human Input Boolean Field Format",
+                    "Conditional",
+                    "skipped",
+                    "Skipped because release/human-inputs.md is missing.",
+                )
+                add_check(
+                    checks,
+                    "VC-023",
+                    "Deployment Human Input Cross-File Alignment",
+                    "Conditional",
+                    "skipped",
+                    "Skipped because release/human-inputs.md is missing.",
+                )
+                unresolved_human_dependencies.append(
+                    {
+                        "field": "release/human-inputs.md",
+                        "owner": "release-manager",
+                        "nextAction": "Create release/human-inputs.md from skill template.",
+                    }
+                )
+        else:
+            add_check(
+                checks,
+                "VC-020",
+                "Deployment Human Input File Presence",
+                "Conditional",
+                "skipped",
+                "withDeploymentLayer is not enabled.",
+            )
+            add_check(
+                checks,
+                "VC-021",
+                "Deployment Human Input Required Fields",
+                "Conditional",
+                "skipped",
+                "withDeploymentLayer is not enabled.",
+            )
+            add_check(
+                checks,
+                "VC-022",
+                "Deployment Human Input Boolean Field Format",
+                "Conditional",
+                "skipped",
+                "withDeploymentLayer is not enabled.",
+            )
+            add_check(
+                checks,
+                "VC-023",
+                "Deployment Human Input Cross-File Alignment",
+                "Conditional",
+                "skipped",
+                "withDeploymentLayer is not enabled.",
+            )
+
         module_contracts: list[tuple[str, str, list[str]]] = [
             (
                 "withUiFoundation",
@@ -793,7 +1088,7 @@ def main() -> int:
         print("Validation failed.")
 
     report = {
-        "schemaVersion": 2,
+        "schemaVersion": 3,
         "status": status,
         "infraStatus": infra_status,
         "featureStatus": feature_status,
@@ -807,6 +1102,7 @@ def main() -> int:
         ]
         + [check["id"] for check in module_checks if check["result"] == "fail"],
         "warnings": warnings,
+        "unresolvedHumanDependencies": unresolved_human_dependencies,
     }
 
     if args.report_path:

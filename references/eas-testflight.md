@@ -15,6 +15,8 @@ Mark unresolved dependencies instead of claiming full completion:
 
 If these are missing, return overall `partial` with explicit missing items and owners.
 
+Capture these values in `release/human-inputs.md` using `KEY = value` lines. Quotes are optional.
+
 ## Local Login and Project Setup
 ```powershell
 npx expo login
@@ -46,6 +48,7 @@ npx eas update --branch production --message "chore: OTA update"
 
 ## Release Checklist
 - Confirm validator passes (`infraStatus=pass`).
+- Confirm required fields in `release/human-inputs.md` are filled.
 - Confirm `ios.bundleIdentifier` matches App Store Connect app.
 - Confirm build profile used matches target environment.
 - Confirm TestFlight processing completes before tester notification.

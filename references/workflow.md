@@ -21,6 +21,7 @@ Use this precedence when conflicts appear:
 - `WithTabs`
 - `UseAppConfigTs`
 - `ReleaseBranch`
+- `WithDeploymentLayer` (default: `true`)
 - Feature flags: `WithUiFoundation`, `WithProfile`, `WithAuth`, `WithPush`, `WithDataLayer`, `WithAnalytics`, `WithCrashReporting`, `WithLocalization`, `WithAccessibilityChecks`, `WithPrivacyChecklist`
 
 ## Lifecycle Phases
@@ -55,6 +56,7 @@ npm run test
 
 ### Phase 5: Release Readiness
 - Continue with `references/eas-testflight.md`.
+- Fill `release/human-inputs.md` using `KEY = value` lines (quotes optional).
 - Capture unresolved human dependencies before calling run complete.
 
 ## Retry Policy

@@ -25,7 +25,8 @@ param(
   [switch]$WithCrashReporting,
   [switch]$WithLocalization,
   [switch]$WithAccessibilityChecks,
-  [switch]$WithPrivacyChecklist
+  [switch]$WithPrivacyChecklist,
+  [bool]$WithDeploymentLayer = $true
 )
 
 Set-StrictMode -Version Latest
@@ -609,6 +610,11 @@ if ($WithAccessibilityChecks.IsPresent -or $WithPrivacyChecklist.IsPresent) {
 Copy-TemplateTree -TemplateDir (Join-Path $skillRoot "assets/templates/icons-splash") -DestinationRoot (Join-Path $projectDir "assets/placeholders") -Tokens $tokenMap
 Copy-TemplateTree -TemplateDir (Join-Path $skillRoot "assets/templates/testing") -DestinationRoot $projectDir -Tokens $tokenMap
 
+if ($WithDeploymentLayer) {
+  Write-Step "Applying deployment human-input template."
+  Copy-TemplateTree -TemplateDir (Join-Path $skillRoot "assets/templates/release") -DestinationRoot (Join-Path $projectDir "release") -Tokens $tokenMap
+}
+
 if (-not $WithAuth.IsPresent) {
   $authTest = Join-Path $projectDir "__tests__/auth-oauth.test.ts"
   if (Test-Path -LiteralPath $authTest) {
@@ -652,6 +658,7 @@ $moduleFlags = [ordered]@{
   withLocalization = [bool]$WithLocalization.IsPresent
   withAccessibilityChecks = [bool]$WithAccessibilityChecks.IsPresent
   withPrivacyChecklist = [bool]$WithPrivacyChecklist.IsPresent
+  withDeploymentLayer = [bool]$WithDeploymentLayer
 }
 
 if ($UseAppConfigTs.IsPresent) {

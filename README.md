@@ -20,3 +20,5 @@ This repository contains the documentation framework for an iOS-focused skill ge
 ## Scope
 
 The committed files in this repo are focused on skill and framework documentation. Generated app artifacts and local smoke outputs are intentionally excluded from the primary documentation commit history.
+
+The Expo iOS skill templates include release intake scaffolding for human-owned deployment data (`release/human-inputs.md`) using simple `KEY = value` fill-in format.
