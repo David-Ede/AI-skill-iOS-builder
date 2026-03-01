@@ -52,6 +52,16 @@ def check_app_json(app_json_path: Path) -> list[str]:
     ios = expo.get("ios")
     if not isinstance(ios, dict) or not ios.get("bundleIdentifier"):
         errors.append("app.json is missing expo.ios.bundleIdentifier.")
+    ios_config = ios.get("config") if isinstance(ios, dict) else None
+    uses_non_exempt = (
+        ios_config.get("usesNonExemptEncryption")
+        if isinstance(ios_config, dict)
+        else None
+    )
+    if not isinstance(uses_non_exempt, bool):
+        errors.append(
+            "app.json is missing expo.ios.config.usesNonExemptEncryption boolean."
+        )
 
     if not has_router_plugin(expo.get("plugins", [])):
         errors.append("app.json is missing expo-router in expo.plugins.")
@@ -64,6 +74,8 @@ def check_app_config_ts(app_config_path: Path) -> list[str]:
     content = app_config_path.read_text(encoding="utf-8-sig")
     if not re.search(r"bundleIdentifier\s*:\s*['\"][^'\"]+['\"]", content):
         errors.append("app.config.ts is missing ios.bundleIdentifier.")
+    if not re.search(r"usesNonExemptEncryption\s*:\s*(true|false)", content):
+        errors.append("app.config.ts is missing ios.config.usesNonExemptEncryption.")
     if "expo-router" not in content:
         errors.append("app.config.ts is missing expo-router plugin reference.")
     return errors

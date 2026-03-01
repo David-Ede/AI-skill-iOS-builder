@@ -78,6 +78,6 @@ npm run test
 
 ## Exit Criteria
 - Validation script exits `0` (or report status `pass`).
-- Project includes `ios.bundleIdentifier`, Expo Router entrypoint, and EAS profiles.
+- Project includes `ios.bundleIdentifier`, `ios.config.usesNonExemptEncryption`, Expo Router entrypoint, and EAS profiles.
 - GitHub workflow exists at `.github/workflows/eas-ios.yml`.
 - Enabled modules satisfy contract checks.

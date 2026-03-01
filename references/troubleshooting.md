@@ -54,6 +54,15 @@ Actions:
 - Confirm Apple roles and team access.
 - Confirm bundle identifier matches App Store Connect app.
 
+## iOS Export Encryption Metadata Missing
+Symptoms:
+- Build fails with missing `ITSAppUsesNonExemptEncryption` / export-encryption metadata.
+
+Actions:
+- Set Expo config key `ios.config.usesNonExemptEncryption` explicitly.
+- Use `false` for standard apps that do not use non-exempt encryption.
+- Re-run: `npx eas build --platform ios --profile production`.
+
 ## EAS Submit Failures
 Symptoms:
 - Submit job fails to upload to TestFlight.

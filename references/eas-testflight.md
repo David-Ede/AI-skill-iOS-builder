@@ -50,6 +50,7 @@ npx eas update --branch production --message "chore: OTA update"
 - Confirm validator passes (`infraStatus=pass`).
 - Confirm required fields in `release/human-inputs.md` are filled.
 - Confirm `ios.bundleIdentifier` matches App Store Connect app.
+- Confirm Expo config sets `ios.config.usesNonExemptEncryption` explicitly.
 - Confirm build profile used matches target environment.
 - Confirm TestFlight processing completes before tester notification.
 - Confirm unresolved human dependencies list is empty for full `pass`.

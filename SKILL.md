@@ -115,7 +115,7 @@ Format requirements:
 - Scaffold command succeeds with exit code `0`.
 - Validator exits `0` with no blocker failures.
 - CI workflow exists at `.github/workflows/eas-ios.yml`.
-- `ios.bundleIdentifier`, Expo Router entrypoint, and EAS profiles are present.
+- `ios.bundleIdentifier`, `ios.config.usesNonExemptEncryption`, Expo Router entrypoint, and EAS profiles are present.
 - Quality gates (`lint`, `typecheck`, `test`) pass.
 - `test` runs real smoke checks (no placeholder scripts).
 - Enabled modules pass feature-contract checks.

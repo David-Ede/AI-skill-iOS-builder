@@ -384,6 +384,8 @@ function Configure-AppJson {
   $expo = Ensure-ObjectProperty -Object $appConfig -Name "expo" -DefaultValue ([pscustomobject]@{})
   $ios = Ensure-ObjectProperty -Object $expo -Name "ios" -DefaultValue ([pscustomobject]@{})
   Set-ObjectProperty -Object $ios -Name "bundleIdentifier" -Value $BundleId
+  $iosConfig = Ensure-ObjectProperty -Object $ios -Name "config" -DefaultValue ([pscustomobject]@{})
+  Set-ObjectProperty -Object $iosConfig -Name "usesNonExemptEncryption" -Value $false
   if (-not (Has-ObjectProperty -Object $expo -Name "scheme") -or [string]::IsNullOrWhiteSpace([string]$expo.scheme)) {
     Set-ObjectProperty -Object $expo -Name "scheme" -Value ($BundleId.Replace('.', '-'))
   }

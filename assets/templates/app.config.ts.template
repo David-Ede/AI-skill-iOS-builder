@@ -8,6 +8,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ios: {
     bundleIdentifier: "__BUNDLE_ID__",
     supportsTablet: true,
+    config: {
+      usesNonExemptEncryption: false,
+    },
   },
   plugins: ["expo-router"__EXTRA_PLUGINS__],
   experiments: {
