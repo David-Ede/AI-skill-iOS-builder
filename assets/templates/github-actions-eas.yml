@@ -7,7 +7,7 @@ on:
       - __RELEASE_BRANCH__
 
 env:
-  NODE_VERSION: "22"
+  NODE_VERSION: "22.22.0"
   EAS_AUTO_SUBMIT: "false"
 
 jobs:
@@ -15,10 +15,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6.0.2
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6.2.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -41,10 +41,10 @@ jobs:
     if: github.ref == 'refs/heads/__RELEASE_BRANCH__'
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6.0.2
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6.2.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -53,9 +53,9 @@ jobs:
         run: npm ci
 
       - name: Setup Expo and EAS
-        uses: expo/expo-github-action@v8
+        uses: expo/expo-github-action@8.2.1
         with:
-          eas-version: 10.2.1
+          eas-version: 18.0.6
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Build iOS (production)

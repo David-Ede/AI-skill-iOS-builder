@@ -530,11 +530,11 @@ if ($WithLocalization.IsPresent) {
 
 Write-Step "Installing lint and test dependencies."
 Install-DevPackages -ProjectDir $projectDir -Packages @(
-  "eslint@^9.0.0",
-  "eslint-config-expo@~10.0.0",
-  "babel-preset-expo@^54.0.0",
+  "eslint@^9.39.3",
+  "eslint-config-expo@~55.0.0",
+  "babel-preset-expo@~55.0.10",
   "jest@^29.7.0",
-  "jest-expo@~54.0.0",
+  "jest-expo@~55.0.9",
   "@types/jest@^29.5.14",
   "@testing-library/react-native@^13.3.3",
   "react-test-renderer@19.2.0"
