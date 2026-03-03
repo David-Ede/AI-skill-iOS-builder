@@ -6,16 +6,19 @@ Use this workflow for greenfield Expo Router + TypeScript iOS-first scaffolds wi
 ## Contract Hierarchy
 Use this precedence when conflicts appear:
 1. `SKILL.md`
-2. `references/architecture.md`
-3. `references/feature-modules.md`
-4. `references/testing-quality.md`
-5. `references/eas-testflight.md`
-6. user request details that do not violate higher contracts
+2. completed project PRD based on `PRD_TEMPLATE.md` (product behavior and scope authority)
+3. `references/prd-mapping.md`
+4. `references/architecture.md`
+5. `references/feature-modules.md`
+6. `references/testing-quality.md`
+7. `references/eas-testflight.md`
+8. user request details that do not violate higher contracts
 
 ## Required Inputs
 - `AppName`: npm-safe project name.
 - `BundleId`: reverse-DNS identifier such as `com.company.product`.
 - `OutputDir`: parent directory where project folder is created.
+- `PrdPath`: path to completed PRD document derived from `PRD_TEMPLATE.md`.
 
 ## Optional Inputs
 - `WithTabs`
@@ -27,6 +30,10 @@ Use this precedence when conflicts appear:
 ## Lifecycle Phases
 ### Phase 0: Preflight
 - Verify scope is greenfield.
+- Verify `PrdPath` exists and is readable.
+- Validate PRD required sections and required-field placeholders using `references/prd-mapping.md`.
+- Derive feature/module flags from PRD `Section 3` module table.
+- If PRD has unsupported enabled modules or required gaps, return `BLOCKED_INPUT` and stop.
 - Verify `node`, `npm`, `npx` availability.
 - Verify output path is writable.
 - Verify blocked combinations are not requested.
@@ -67,11 +74,14 @@ npm run test
 
 ## Stop Conditions
 - Required inputs missing.
+- PRD contract failure (`BLOCKED_INPUT`).
 - Blocked combination requested.
 - Output path not writable.
 - Blocker contract check fails after allowed retries.
 
 ## Status Mapping
+Before status mapping, if preflight fails PRD input contract, return `BLOCKED_INPUT`.
+
 - `pass`: infrastructure and enabled feature checks pass, with no unresolved critical human dependencies.
 - `partial`: infrastructure passes but conditional release dependencies or optional module dependencies remain.
 - `fail`: blocker contract violation, incompatible request, or unrecoverable gate failure.
@@ -81,3 +91,4 @@ npm run test
 - Project includes `ios.bundleIdentifier`, `ios.config.usesNonExemptEncryption`, Expo Router entrypoint, and EAS profiles.
 - GitHub workflow exists at `.github/workflows/eas-ios.yml`.
 - Enabled modules satisfy contract checks.
+- PRD `FR-*` and `NFR-*` requirements are traceably mapped to implementation tasks/tests.

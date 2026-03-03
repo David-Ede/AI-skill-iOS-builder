@@ -1,5 +1,10 @@
 # Feature Modules
 
+## PRD-Driven Module Selection
+- Feature flags are derived from PRD `Section 3` using `references/prd-mapping.md`.
+- If PRD enables unsupported modules, return `BLOCKED_INPUT` before scaffold.
+- Manual flag overrides are allowed only when they do not conflict with PRD scope.
+
 ## Supported Module Flags
 - `WithUiFoundation`: tabs baseline (`Home`, `Explore`, `Profile`) and UI state patterns.
 - `WithProfile`: profile/settings placeholders.

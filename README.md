@@ -22,3 +22,11 @@ This repository contains the documentation framework for an iOS-focused skill ge
 The committed files in this repo are focused on skill and framework documentation. Generated app artifacts and local smoke outputs are intentionally excluded from the primary documentation commit history.
 
 The Expo iOS skill templates include release intake scaffolding for human-owned deployment data (`release/human-inputs.md`) using simple `KEY = value` fill-in format.
+
+## PRD Contract
+
+`PRD_TEMPLATE.md` is the primary planning contract for skill-driven builds.
+
+- Provide a completed PRD file and pass its path as `PrdPath`.
+- Preflight validation and module-flag derivation are defined in `references/prd-mapping.md`.
+- If required PRD fields are missing or unsupported modules are enabled, the workflow must return `BLOCKED_INPUT` before scaffolding.

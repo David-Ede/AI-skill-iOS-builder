@@ -43,12 +43,14 @@ Blocked for this skill:
 - Bare React Native CLI scaffold path.
 - Non-npm package manager assumptions.
 - Non-EAS release pipeline requirements.
+- PRD-enabled modules that are not mapped as supported in `references/prd-mapping.md`.
 
 Risk conditions:
 - Missing App Store Connect app record for the bundle identifier.
 - Missing signing credentials or CI secrets for submit flow.
 - Node version drift that breaks Expo ecosystem commands.
 - Unsupported feature-flag combinations.
+- PRD required-field gaps or unresolved placeholders that trigger `BLOCKED_INPUT`.
 
 ## Non-Goals
 - Do not treat this skill as the primary path for migrating large existing repositories.
