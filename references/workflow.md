@@ -6,7 +6,7 @@ Use this workflow for greenfield Expo Router + TypeScript iOS-first scaffolds wi
 ## Contract Hierarchy
 Use this precedence when conflicts appear:
 1. `SKILL.md`
-2. completed project PRD based on `PRD_TEMPLATE.md` (product behavior and scope authority)
+2. completed project PRD based on `Prd Template.md` (product behavior and scope authority)
 3. `references/prd-mapping.md`
 4. `references/architecture.md`
 5. `references/feature-modules.md`
@@ -18,7 +18,7 @@ Use this precedence when conflicts appear:
 - `AppName`: npm-safe project name.
 - `BundleId`: reverse-DNS identifier such as `com.company.product`.
 - `OutputDir`: parent directory where project folder is created.
-- `PrdPath`: path to completed PRD document derived from `PRD_TEMPLATE.md`.
+- `PrdPath`: path to completed PRD document derived from `Prd Template.md`.
 
 ## Optional Inputs
 - `WithTabs`

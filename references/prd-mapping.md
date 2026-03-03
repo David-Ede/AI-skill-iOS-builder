@@ -1,7 +1,7 @@
 # PRD Mapping Contract
 
 ## Purpose
-Use a completed PRD (based on `PRD_TEMPLATE.md`) as the mandatory planning contract for this skill.
+Use a completed PRD (based on `Prd Template.md`) as the mandatory planning contract for this skill.
 
 The PRD controls:
 - product scope
@@ -11,7 +11,7 @@ The PRD controls:
 
 ## Required PRD Input
 - Input key: `PrdPath`
-- Expected file: a project-specific PRD derived from `PRD_TEMPLATE.md`
+- Expected file: a project-specific PRD derived from `Prd Template.md`
 - If `PrdPath` is missing, unreadable, or incomplete, stop and return `BLOCKED_INPUT`.
 
 ## Preflight Validation Rules

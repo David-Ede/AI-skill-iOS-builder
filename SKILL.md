@@ -6,7 +6,7 @@ description: Use for greenfield iOS-first React Native app generation with Expo 
 # Expo iOS App Builder
 
 ## Purpose
-Create new iOS-first Expo applications with deterministic scaffold, contract validation, baseline feature modules, and EAS/TestFlight delivery readiness. Execution is PRD-driven using `PRD_TEMPLATE.md` as the authoritative product contract. Prefer strict contracts over ad-hoc edits and produce a final status report with both infrastructure and feature readiness.
+Create new iOS-first Expo applications with deterministic scaffold, contract validation, baseline feature modules, and EAS/TestFlight delivery readiness. Execution is PRD-driven using `Prd Template.md` as the authoritative product contract. Prefer strict contracts over ad-hoc edits and produce a final status report with both infrastructure and feature readiness.
 
 ## When To Use This
 - Greenfield Expo app requests with iOS-first scope.
@@ -25,7 +25,7 @@ Required:
 - `AppName`
 - `BundleId`
 - `OutputDir`
-- `PrdPath` (path to a completed PRD document based on `PRD_TEMPLATE.md`)
+- `PrdPath` (path to a completed PRD document based on `Prd Template.md`)
 
 Optional:
 - `WithTabs`
@@ -76,7 +76,7 @@ Format requirements:
 - `eas.json` must include `build.preview` and `build.production`.
 - `scripts.test` must run real smoke tests (no placeholder/no-op script).
 - `release/human-inputs.md` uses `KEY = value` entries; quotes are optional.
-- PRD input must be based on `PRD_TEMPLATE.md` and must not contain unresolved placeholders for required fields.
+- PRD input must be based on `Prd Template.md` and must not contain unresolved placeholders for required fields.
 
 ## Safety And Constraints
 - Never write real secrets into tracked source files.
@@ -151,7 +151,7 @@ Format requirements:
 - If release credentials are missing, mark unresolved human dependencies and return `partial`.
 
 ## References
-- Read `PRD_TEMPLATE.md` for required PRD structure and field semantics.
+- Read `Prd Template.md` for required PRD structure and field semantics.
 - Read `references/prd-mapping.md` for PRD-to-flag mapping and `BLOCKED_INPUT` rules.
 - Read `references/workflow.md` for deterministic phase ordering and status mapping.
 - Read `references/architecture.md` for contract boundaries and blocked combinations.

@@ -1,32 +1,79 @@
 # AI Skill iOS Builder
 
-This repository contains the documentation framework for an iOS-focused skill generator workflow.
+This repository is a production-oriented skill package for generating new iOS-first Expo apps with:
 
-## Contents
+- Expo Router + TypeScript scaffold
+- Optional baseline feature modules (auth, push, profile, data layer, analytics/crash, localization, accessibility/privacy docs)
+- Contract validation gates
+- GitHub Actions + EAS/TestFlight setup baseline
 
-- `generator-framework/skill_skeleton.md`: Baseline skill structure.
-- `generator-framework/Generator_Input_Contracts.md`: Required input schemas and assumptions.
-- `generator-framework/Generator_Output_Contract.md`: Expected generated artifacts and format.
-- `generator-framework/Generator_Prompt_Protocol.md`: Prompting conventions and generation rules.
-- `generator-framework/Generator_Stack_Profile.md`: Technology/profile constraints.
-- `generator-framework/Generator_Compatibility_Matrix.md`: Supported combinations and constraints.
-- `generator-framework/Generator_Parity_Contract.md`: Parity requirements across outputs.
-- `generator-framework/Generator_Data_Adapter_Contract.md`: Data adapter boundaries and interfaces.
-- `generator-framework/Generator_Human_Gates.yaml`: Human-review checkpoints.
-- `generator-framework/Repo_Check_Gates.md`: Repository-level quality gates.
-- `generator-framework/Generator_Failure_Playbook.md`: Failure handling and recovery expectations.
-- `generator-framework/Exec_Plan.md`: Execution plan for running the workflow.
+## Who This Is For
 
-## Scope
+- Human operators running a PRD-driven build flow
+- AI agents that execute the skill from `SKILL.md`
+- Teams that want deterministic scaffold + release readiness checks
 
-The committed files in this repo are focused on skill and framework documentation. Generated app artifacts and local smoke outputs are intentionally excluded from the primary documentation commit history.
+## Quick Start (Human)
 
-The Expo iOS skill templates include release intake scaffolding for human-owned deployment data (`release/human-inputs.md`) using simple `KEY = value` fill-in format.
+1. Copy and complete [Prd Template.md](Prd%20Template.md).
+2. Follow [Instructions For Full Production Flow.md](Instructions%20For%20Full%20Production%20Flow.md).
+3. Run scaffold, validator, CI setup, and quality gates.
+4. Complete release inputs and Apple/Expo setup.
+5. Build and submit to TestFlight.
 
-## PRD Contract
+## Document Order
 
-`PRD_TEMPLATE.md` is the primary planning contract for skill-driven builds.
+Read in this order for a full build:
 
-- Provide a completed PRD file and pass its path as `PrdPath`.
-- Preflight validation and module-flag derivation are defined in `references/prd-mapping.md`.
-- If required PRD fields are missing or unsupported modules are enabled, the workflow must return `BLOCKED_INPUT` before scaffolding.
+1. [README.md](README.md) (orientation and contracts)
+2. [Prd Template.md](Prd%20Template.md) (product/build input contract)
+3. [Instructions For Full Production Flow.md](Instructions%20For%20Full%20Production%20Flow.md) (end-to-end runbook)
+4. [Human Build Checklist.md](Human%20Build%20Checklist.md) (solo quick checklist)
+
+## Required Build Inputs
+
+- `AppName` (project directory name)
+- `BundleId` (reverse-DNS iOS bundle ID, for example `com.company.product`)
+- `OutputDir` (directory where app folder will be created)
+- `PrdPath` (path to completed PRD from this repo template)
+
+If required PRD fields are missing or unsupported modules are enabled, the workflow must return `BLOCKED_INPUT` and stop.
+
+## Required Tooling and Accounts
+
+Tooling:
+- Node.js (`>= 20.19.4`)
+- npm
+- npx
+- Python 3
+- Git
+
+Accounts:
+- GitHub
+- Expo (EAS)
+- Apple Developer Program + App Store Connect access
+
+## What Humans Must Still Own
+
+The skill scaffolds and validates project structure, but humans must provide and maintain:
+
+- Product decisions in the PRD
+- Apple account/legal setup and app record creation
+- Credential and secret setup (`EXPO_TOKEN`, App Store Connect API key material)
+- Final release decisions and store metadata completion
+
+## Repo Map
+
+- `SKILL.md`: agent-facing contract and execution workflow
+- `scripts/`: scaffold, CI setup, and validator tools
+- `assets/templates/`: files copied into generated app projects
+- `references/`: detailed constraints, mappings, quality, and release docs
+- `generator-framework/`: higher-level framework contracts used by this skill family
+
+## Success Criteria for a Build
+
+- Scaffold succeeds
+- Validator status is `pass` (or `partial` only when explicitly accepted due to human dependencies)
+- `npm run lint`, `npm run typecheck`, `npm run test` pass
+- Release intake (`release/human-inputs.md`) is completed
+- EAS build and TestFlight submit complete successfully

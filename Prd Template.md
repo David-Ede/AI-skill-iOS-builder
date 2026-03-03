@@ -9,6 +9,22 @@ Use this file as the primary instruction contract for any AI Skill that generate
 4. Keep requirement IDs stable once implementation starts.
 5. If a required field is unknown, write `UNKNOWN` and add an open question.
 
+## expo-ios-app-builder Preflight Rules
+Use these additional rules when this PRD is used with this repository's skill:
+
+1. Set primary platform to `iOS` or `Multi-platform` with iOS-first scope.
+2. Keep unsupported scaffold modules disabled:
+   - `MOD-CONTENT`
+   - `MOD-TRANSACT`
+   - `MOD-SOCIAL`
+   - `MOD-ADMIN`
+   - `MOD-INTEG`
+   - `MOD-SEARCH`
+   - `MOD-MEDIA`
+3. Ensure required placeholders are replaced before scaffold.
+
+If unsupported modules are enabled or required placeholders remain unresolved, the workflow must return `BLOCKED_INPUT`.
+
 ## Skill Contract
 - The Skill must treat this PRD as authoritative for product behavior.
 - If any `REQUIRED` field is missing, the Skill must return `BLOCKED_INPUT` and list missing fields.
@@ -23,6 +39,13 @@ Use this file as the primary instruction contract for any AI Skill that generate
 - Status (`REQUIRED`): `[Draft | Approved | In Build | Released]`
 - Linked plan (`REQUIRED`): `[docs/PLAN.md]`
 - Linked tracker (`REQUIRED`): `[Issue board path/url]`
+
+### 0.1 Build Inputs for Skill Execution (`REQUIRED` for this skill)
+- App name (`REQUIRED`): `[npm-safe-name, e.g. weather-app]`
+- iOS bundle ID (`REQUIRED`): `[com.company.product]`
+- Output directory (`REQUIRED`): `[absolute/or-relative-path]`
+- Release branch (`REQUIRED`): `[main or release/*]`
+- Repo provider (`REQUIRED`): `[github]`
 
 ## 1. Product Definition
 - Product summary (`REQUIRED`):
@@ -58,6 +81,7 @@ Use this file as the primary instruction contract for any AI Skill that generate
 
 ## 3. Modular Architecture Selection
 Set `Enabled` to `Yes` only for modules required by this product.
+For `expo-ios-app-builder`, keep unsupported modules set to `No` or the run is blocked.
 
 | Module ID | Module Name | Enabled (Yes/No) | Priority (P0/P1/P2) | Notes |
 | --- | --- | --- | --- | --- |
