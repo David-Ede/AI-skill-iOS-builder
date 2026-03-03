@@ -1,12 +1,15 @@
-﻿import { Text, View } from "react-native";
+import { Text, View } from "react-native";
+import { useThemeColors } from "../ui/theme";
 
 export function ProfileActions() {
+  const colors = useThemeColors();
+
   return (
     <View style={{ gap: 8 }}>
-      <Text>Account action placeholders:</Text>
-      <Text>- Sign out</Text>
-      <Text>- Delete account</Text>
-      <Text>- Notification preferences</Text>
+      <Text style={{ color: colors.text }}>Account action placeholders:</Text>
+      <Text style={{ color: colors.textMuted }}>- Sign out</Text>
+      <Text style={{ color: colors.textMuted }}>- Delete account</Text>
+      <Text style={{ color: colors.textMuted }}>- Notification preferences</Text>
     </View>
   );
 }

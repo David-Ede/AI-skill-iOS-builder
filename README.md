@@ -3,6 +3,7 @@
 This repository is a production-oriented skill package for generating new iOS-first Expo apps with:
 
 - Expo Router + TypeScript scaffold
+- System light/dark appearance support via `userInterfaceStyle: "automatic"` and shared semantic theme tokens
 - Optional baseline feature modules (auth, push, profile, data layer, analytics/crash, localization, accessibility/privacy docs)
 - Contract validation gates
 - GitHub Actions + EAS/TestFlight setup baseline

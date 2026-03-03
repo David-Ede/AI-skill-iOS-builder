@@ -1,10 +1,11 @@
-﻿import { ConfigContext, ExpoConfig } from "expo/config";
+import { ConfigContext, ExpoConfig } from "expo/config";
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: "__APP_NAME__",
   slug: "__APP_SLUG__",
   scheme: "__APP_SCHEME__",
+  userInterfaceStyle: "automatic",
   ios: {
     bundleIdentifier: "__BUNDLE_ID__",
     supportsTablet: true,

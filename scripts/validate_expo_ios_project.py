@@ -65,6 +65,8 @@ def check_app_json(app_json_path: Path) -> list[str]:
 
     if not has_router_plugin(expo.get("plugins", [])):
         errors.append("app.json is missing expo-router in expo.plugins.")
+    if expo.get("userInterfaceStyle") != "automatic":
+        errors.append('app.json must set expo.userInterfaceStyle to "automatic".')
 
     return errors
 
@@ -76,6 +78,8 @@ def check_app_config_ts(app_config_path: Path) -> list[str]:
         errors.append("app.config.ts is missing ios.bundleIdentifier.")
     if not re.search(r"usesNonExemptEncryption\s*:\s*(true|false)", content):
         errors.append("app.config.ts is missing ios.config.usesNonExemptEncryption.")
+    if not re.search(r"userInterfaceStyle\s*:\s*['\"]automatic['\"]", content):
+        errors.append('app.config.ts must set userInterfaceStyle to "automatic".')
     if "expo-router" not in content:
         errors.append("app.config.ts is missing expo-router plugin reference.")
     return errors
@@ -602,6 +606,25 @@ def main() -> int:
                 "__tests__/app-shell.test.tsx is missing.",
             )
 
+        theme_file_path = project_dir / "src" / "ui" / "theme.ts"
+        if theme_file_path.exists():
+            add_check(
+                checks,
+                "VC-024",
+                "Theme Token File Presence",
+                "Blocker",
+                "pass",
+            )
+        else:
+            add_check(
+                checks,
+                "VC-024",
+                "Theme Token File Presence",
+                "Blocker",
+                "fail",
+                "src/ui/theme.ts is missing.",
+            )
+
         metadata_path = project_dir / "skill.modules.json"
         modules: dict[str, bool] = {}
         release_branch = "main"
@@ -977,6 +1000,8 @@ def main() -> int:
                     "app/(tabs)/index.tsx",
                     "app/(tabs)/explore.tsx",
                     "app/(tabs)/profile.tsx",
+                    "src/ui/StatePanel.tsx",
+                    "src/ui/theme.ts",
                 ],
             ),
             (

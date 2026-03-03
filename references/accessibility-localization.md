@@ -4,6 +4,8 @@
 - Interactive controls expose accessible labels.
 - Touch targets are large enough for standard mobile accessibility expectations.
 - Color contrast is reviewed for primary surfaces.
+- App appearance follows system light/dark mode (`userInterfaceStyle: "automatic"`).
+- Screens/components use shared semantic theme tokens instead of per-screen hard-coded palette values.
 - Screen reader order is logical for Home and Profile screens.
 
 ## Localization Baseline Checklist

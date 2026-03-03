@@ -21,10 +21,12 @@
 - `package.json.main` must be `expo-router/entry`.
 - `app.json` or `app.config.ts` must include `ios.bundleIdentifier`.
 - `app.json` or `app.config.ts` must explicitly set `ios.config.usesNonExemptEncryption` (`false` unless non-exempt encryption is used).
+- `app.json` or `app.config.ts` must set `userInterfaceStyle` to `automatic`.
 - Expo config plugins must include `expo-router`.
 - If `WithPush` is enabled, active Expo config must include `expo-notifications` plugin.
 - `eas.json.build.preview` and `eas.json.build.production` must exist.
 - `.gitignore` should include `.expo/` and `.expo-shared/`.
+- `src/ui/theme.ts` must exist with shared semantic theme tokens.
 - `skill.modules.json` must exist and reflect enabled feature flags.
 - If `withDeploymentLayer` is enabled in `skill.modules.json`, `release/human-inputs.md` must exist.
 

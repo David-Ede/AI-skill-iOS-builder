@@ -61,7 +61,7 @@ Files created or modified:
 - `<project>/skill.modules.json`
 
 Feature-module outputs (enabled by flags):
-- UI foundation routes/screens and placeholder assets metadata.
+- UI foundation routes/screens, shared semantic theme tokens (`src/ui/theme.ts`), and placeholder assets metadata.
 - Auth/session template files with OAuth provider slots.
 - Push registration/permission/deep-link template files.
 - Profile/settings and data-layer retry/cache template files.
@@ -73,6 +73,7 @@ Feature-module outputs (enabled by flags):
 Format requirements:
 - JSON files must be valid UTF-8 and machine parseable.
 - `package.json.main` must be `expo-router/entry`.
+- `app.json` or `app.config.ts` must set `userInterfaceStyle` to `automatic`.
 - `eas.json` must include `build.preview` and `build.production`.
 - `scripts.test` must run real smoke tests (no placeholder/no-op script).
 - `release/human-inputs.md` uses `KEY = value` entries; quotes are optional.
@@ -131,7 +132,7 @@ Format requirements:
 - PRD preflight contract returns `ready` (no required-field gaps, no unsupported enabled modules, no unresolved required placeholders).
 - Validator exits `0` with no blocker failures.
 - CI workflow exists at `.github/workflows/eas-ios.yml`.
-- `ios.bundleIdentifier`, `ios.config.usesNonExemptEncryption`, Expo Router entrypoint, and EAS profiles are present.
+- `ios.bundleIdentifier`, `ios.config.usesNonExemptEncryption`, `userInterfaceStyle: automatic`, Expo Router entrypoint, and EAS profiles are present.
 - Quality gates (`lint`, `typecheck`, `test`) pass.
 - `test` runs real smoke checks (no placeholder scripts).
 - Enabled modules pass feature-contract checks.

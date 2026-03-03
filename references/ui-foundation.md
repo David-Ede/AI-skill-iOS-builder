@@ -7,6 +7,7 @@ When UI foundation is enabled:
 - `app/(tabs)/explore.tsx` exists (`Explore`).
 - `app/(tabs)/profile.tsx` exists (`Profile`).
 - `app/(tabs)/_layout.tsx` configures bottom tabs.
+- `src/ui/theme.ts` defines semantic tokens and color-scheme hooks.
 
 ## Screen State Pattern
 Home screen should provide baseline UI states:
@@ -14,6 +15,11 @@ Home screen should provide baseline UI states:
 - `empty`
 - `error`
 - `ready`
+
+## Appearance Baseline
+- Use system appearance by default (`userInterfaceStyle: "automatic"` in app config).
+- Use semantic theme tokens in screens/components instead of hard-coded colors.
+- Set status bar style from active color scheme (`light` in dark mode, `dark` in light mode).
 
 ## Placeholder Assets Policy
 Generated app must include placeholder tracking notes for:

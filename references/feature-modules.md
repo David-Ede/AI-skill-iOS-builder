@@ -33,7 +33,7 @@
 
 ## Module Contract Files
 When enabled, each module must create files under these roots:
-- UI foundation: `app/(tabs)/*`, `src/ui/*`
+- UI foundation: `app/(tabs)/*`, `src/ui/*` (including `src/ui/theme.ts`)
 - Profile/settings: `app/settings.tsx`, `src/profile/*`
 - Auth: `app/sign-in.tsx`, `src/auth/*`, `__tests__/auth-oauth.test.ts`
 - Push: `src/notifications/*`, `__tests__/notification-deeplink.test.ts`
