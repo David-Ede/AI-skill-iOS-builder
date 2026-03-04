@@ -1,4 +1,4 @@
 interface:
   display_name: "Expo iOS App Builder"
-  short_description: "Build iOS-first Expo apps with feature modules and EAS delivery."
-  default_prompt: "Use $expo-ios-app-builder to scaffold a new iOS-first Expo Router app with optional UI/auth/push/data modules, EAS/TestFlight setup, and release/human-inputs.md intake scaffolding."
+  short_description: "Build iOS-first Expo apps from PRD through implementation and TestFlight."
+  default_prompt: "Use $expo-ios-app-builder to create a new iOS-first Expo Router app, implement PRD feature scope (not scaffold-only placeholders), enforce PRD traceability with validator gates, and prepare EAS/TestFlight delivery."

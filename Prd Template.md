@@ -13,17 +13,10 @@ Use this file as the primary instruction contract for any AI Skill that generate
 Use these additional rules when this PRD is used with this repository's skill:
 
 1. Set primary platform to `iOS` or `Multi-platform` with iOS-first scope.
-2. Keep unsupported scaffold modules disabled:
-   - `MOD-CONTENT`
-   - `MOD-TRANSACT`
-   - `MOD-SOCIAL`
-   - `MOD-ADMIN`
-   - `MOD-INTEG`
-   - `MOD-SEARCH`
-   - `MOD-MEDIA`
-3. Ensure required placeholders are replaced before scaffold.
+2. Ensure required placeholders are replaced before scaffold.
+3. For modules without direct scaffold flags (`MOD-CONTENT`, `MOD-TRANSACT`, `MOD-SOCIAL`, `MOD-ADMIN`, `MOD-INTEG`, `MOD-SEARCH`, `MOD-MEDIA`), define explicit FRs and test contracts for custom implementation.
 
-If unsupported modules are enabled or required placeholders remain unresolved, the workflow must return `BLOCKED_INPUT`.
+If required placeholders remain unresolved or required fields are missing, the workflow must return `BLOCKED_INPUT`.
 
 ## Skill Contract
 - The Skill must treat this PRD as authoritative for product behavior.
@@ -81,7 +74,7 @@ If unsupported modules are enabled or required placeholders remain unresolved, t
 
 ## 3. Modular Architecture Selection
 Set `Enabled` to `Yes` only for modules required by this product.
-For `expo-ios-app-builder`, keep unsupported modules set to `No` or the run is blocked.
+For `expo-ios-app-builder`, modules without direct scaffold flags require custom implementation work in the feature phase.
 
 | Module ID | Module Name | Enabled (Yes/No) | Priority (P0/P1/P2) | Notes |
 | --- | --- | --- | --- | --- |

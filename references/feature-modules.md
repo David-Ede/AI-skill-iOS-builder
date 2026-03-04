@@ -1,38 +1,40 @@
 # Feature Modules
 
-## PRD-Driven Module Selection
-- Feature flags are derived from PRD `Section 3` using `references/prd-mapping.md`.
-- If PRD enables unsupported modules, return `BLOCKED_INPUT` before scaffold.
-- Manual flag overrides are allowed only when they do not conflict with PRD scope.
+## Module Strategy
+- This skill provides scaffold templates for common mobile foundations.
+- Scaffold output is not final product behavior.
+- Every enabled PRD module must be implemented with real feature code and tests before release.
 
-## Supported Module Flags
-- `WithUiFoundation`: tabs baseline (`Home`, `Explore`, `Profile`) and UI state patterns.
-- `WithProfile`: profile/settings placeholders.
-- `WithAuth`: sign-in, secure session storage, and OAuth provider slot scaffolding.
-- `WithPush`: push permission flow, token registration helpers, and deep-link payload parsing.
-- `WithDataLayer`: API client baseline with retry policy and cache policy helpers.
-- `WithAnalytics`: analytics placeholder utilities.
-- `WithCrashReporting`: crash reporter placeholder utilities.
-- `WithLocalization`: localization scaffolding.
-- `WithAccessibilityChecks`: accessibility checklist doc.
-- `WithPrivacyChecklist`: privacy checklist doc.
-- `WithDeploymentLayer`: release human-input intake doc (`release/human-inputs.md`).
+## Scaffold-Template Flags
+- `WithUiFoundation`: base routes and theme tokens.
+- `WithProfile`: profile/settings shell.
+- `WithAuth`: auth/session baseline.
+- `WithPush`: push/deep-link baseline.
+- `WithDataLayer`: request + cache baseline.
+- `WithAnalytics`: analytics adapter baseline.
+- `WithCrashReporting`: crash adapter baseline.
+- `WithLocalization`: i18n baseline.
+- `WithAccessibilityChecks`: accessibility checklist.
+- `WithPrivacyChecklist`: privacy checklist.
+- `WithDeploymentLayer`: release intake file (`release/human-inputs.md`).
+
+## Modules Without Direct Scaffold Flags
+When PRD enables these modules, implement custom code/tests from PRD requirements:
+- `MOD-CONTENT`
+- `MOD-TRANSACT`
+- `MOD-SOCIAL`
+- `MOD-ADMIN`
+- `MOD-INTEG`
+- `MOD-SEARCH`
+- `MOD-MEDIA`
 
 ## Default Behavior
 - `WithTabs` implies `WithUiFoundation`.
 - `WithProfile` implies `WithUiFoundation`.
-- Other modules are opt-in.
 - `WithDeploymentLayer` defaults to enabled.
 
-## Compatibility Rules
-- `WithUiFoundation` and `WithTabs` are compatible and intended together.
-- `WithAuth` can be enabled without backend integration; generated OAuth flows are explicit provider slots with setup guidance.
-- `WithPush` includes client-side deep-link parsing and still requires backend token registration endpoint integration.
-- `WithDataLayer` defaults to safe retries and in-memory cache; replace with product-specific persistence for offline-first apps.
-- `WithAnalytics` and `WithCrashReporting` add placeholder adapters only.
-
-## Module Contract Files
-When enabled, each module must create files under these roots:
+## Contract Files
+When enabled, template-backed modules must create baseline files:
 - UI foundation: `app/(tabs)/*`, `src/ui/*` (including `src/ui/theme.ts`)
 - Profile/settings: `app/settings.tsx`, `src/profile/*`
 - Auth: `app/sign-in.tsx`, `src/auth/*`, `__tests__/auth-oauth.test.ts`
@@ -43,8 +45,8 @@ When enabled, each module must create files under these roots:
 - Accessibility/privacy: `docs/*-checklist.md`
 - Deployment layer: `release/human-inputs.md`
 
-## Validator Expectations
-- `skill.modules.json` must exist with boolean flags.
-- Enabled flags require matching module contract files (including module-specific tests).
-- Disabled flags do not require module contract files.
-- When `withDeploymentLayer` is enabled, validator checks `release/human-inputs.md` for required `KEY = value` entries.
+## Production Implementation Contract
+- Replace scaffold placeholder content in `app/`, `src/`, and `__tests__/`.
+- Add feature-specific tests for module requirements (not only baseline tests).
+- Maintain `<project>/reports/prd-implementation.json` with per-requirement code/test evidence.
+- Validator must pass with `--prd-path` before release.

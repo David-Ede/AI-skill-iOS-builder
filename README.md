@@ -2,11 +2,12 @@
 
 This repository is a production-oriented skill package for generating new iOS-first Expo apps with:
 
-- Expo Router + TypeScript scaffold
+- Expo Router + TypeScript scaffold baseline
 - System light/dark appearance support via `userInterfaceStyle: "automatic"` and shared semantic theme tokens
-- Optional baseline feature modules (auth, push, profile, data layer, analytics/crash, localization, accessibility/privacy docs)
-- Contract validation gates
-- GitHub Actions + EAS/TestFlight setup baseline
+- Optional module templates (auth, push, profile, data layer, analytics/crash, localization, accessibility/privacy docs)
+- PRD-driven feature implementation contract (`reports/prd-implementation.json`)
+- Validator gates that block scaffold-only/placeholder output
+- GitHub Actions + EAS/TestFlight setup
 
 ## Who This Is For
 
@@ -18,9 +19,11 @@ This repository is a production-oriented skill package for generating new iOS-fi
 
 1. Copy and complete [Prd Template.md](Prd%20Template.md).
 2. Follow [Instructions For Full Production Flow.md](Instructions%20For%20Full%20Production%20Flow.md).
-3. Run scaffold, validator, CI setup, and quality gates.
-4. Complete release inputs and Apple/Expo setup.
-5. Build and submit to TestFlight.
+3. Run scaffold and bootstrap PRD mapping.
+4. Implement PRD features and tests.
+5. Run PRD-aware validator, CI setup, and quality gates.
+6. Complete release inputs and Apple/Expo setup.
+7. Build and submit to TestFlight.
 
 ## Document Order
 
@@ -38,7 +41,7 @@ Read in this order for a full build:
 - `OutputDir` (directory where app folder will be created)
 - `PrdPath` (path to completed PRD from this repo template)
 
-If required PRD fields are missing or unsupported modules are enabled, the workflow must return `BLOCKED_INPUT` and stop.
+If required PRD fields are missing or required placeholders remain unresolved, the workflow must return `BLOCKED_INPUT` and stop.
 
 ## Required Tooling and Accounts
 
@@ -56,9 +59,10 @@ Accounts:
 
 ## What Humans Must Still Own
 
-The skill scaffolds and validates project structure, but humans must provide and maintain:
+The skill scaffolds and validates, but humans/agents must still own:
 
 - Product decisions in the PRD
+- Feature implementation details and test coverage for PRD scope
 - Apple account/legal setup and app record creation
 - Credential and secret setup (`EXPO_TOKEN`, App Store Connect API key material)
 - Final release decisions and store metadata completion
@@ -66,7 +70,7 @@ The skill scaffolds and validates project structure, but humans must provide and
 ## Repo Map
 
 - `SKILL.md`: agent-facing contract and execution workflow
-- `scripts/`: scaffold, CI setup, and validator tools
+- `scripts/`: scaffold, PRD mapping bootstrap, CI setup, and validator tools
 - `assets/templates/`: files copied into generated app projects
 - `references/`: detailed constraints, mappings, quality, and release docs
 - `generator-framework/`: higher-level framework contracts used by this skill family
@@ -74,7 +78,9 @@ The skill scaffolds and validates project structure, but humans must provide and
 ## Success Criteria for a Build
 
 - Scaffold succeeds
-- Validator status is `pass` (or `partial` only when explicitly accepted due to human dependencies)
+- `reports/prd-implementation.json` exists and maps all PRD requirements
+- Validator status is `pass` with no blocker failures
+- Placeholder marker scan reports zero findings
 - `npm run lint`, `npm run typecheck`, `npm run test` pass
 - Release intake (`release/human-inputs.md`) is completed
 - EAS build and TestFlight submit complete successfully

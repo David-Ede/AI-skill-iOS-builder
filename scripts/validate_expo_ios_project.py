@@ -12,6 +12,35 @@ from pathlib import Path
 from typing import Any
 
 
+PRD_REQUIREMENT_PATTERN = re.compile(r"^(FR-[A-Z0-9-]+|NFR-[0-9]+)$", re.IGNORECASE)
+PRD_PRIORITY_PATTERN = re.compile(r"\b(P[0-2])\b", re.IGNORECASE)
+
+PLACEHOLDER_SCAN_EXTENSIONS: tuple[str, ...] = (".ts", ".tsx", ".js", ".jsx")
+PLACEHOLDER_SCAN_PATTERNS: tuple[re.Pattern[str], ...] = (
+    re.compile(r"\bplaceholder(s)?\b", re.IGNORECASE),
+    re.compile(r"\bstarter\b", re.IGNORECASE),
+    re.compile(r"baseline scaffold", re.IGNORECASE),
+    re.compile(r"\bcoming soon\b", re.IGNORECASE),
+    re.compile(r"\bmock data\b", re.IGNORECASE),
+    re.compile(r"\btodo\b", re.IGNORECASE),
+)
+
+BASELINE_TEST_FILES: frozenset[str] = frozenset(
+    {
+        "__tests__/app-shell.test.tsx",
+        "__tests__/auth-oauth.test.ts",
+        "__tests__/notification-deeplink.test.ts",
+        "__tests__/async-resource.test.ts",
+    }
+)
+
+IMPLEMENTED_STATUSES: frozenset[str] = frozenset(
+    {"implemented", "complete", "completed", "done", "pass"}
+)
+
+DEFAULT_PRD_IMPLEMENTATION_REPORT_REL_PATH = "reports/prd-implementation.json"
+
+
 def utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
@@ -199,6 +228,151 @@ def check_required_files(project_dir: Path, rel_paths: list[str]) -> list[str]:
     return missing
 
 
+def normalize_markdown_cell(cell: str) -> str:
+    return cell.strip().strip("`").strip()
+
+
+def parse_markdown_table_row(line: str) -> list[str] | None:
+    stripped = line.strip()
+    if not stripped.startswith("|"):
+        return None
+    cells = [part.strip() for part in stripped.strip("|").split("|")]
+    if not cells:
+        return None
+    if all(re.fullmatch(r":?-{3,}:?", cell.replace(" ", "")) for cell in cells):
+        return None
+    return cells
+
+
+def parse_priority(value: str) -> str:
+    normalized = normalize_markdown_cell(value).upper()
+    match = PRD_PRIORITY_PATTERN.search(normalized)
+    if match:
+        return match.group(1).upper()
+    return ""
+
+
+def priority_rank(priority: str) -> int:
+    normalized = priority.upper().strip()
+    if normalized == "P0":
+        return 0
+    if normalized == "P1":
+        return 1
+    if normalized == "P2":
+        return 2
+    return 9
+
+
+def extract_prd_requirements(prd_path: Path) -> list[dict[str, str]]:
+    content = prd_path.read_text(encoding="utf-8-sig")
+    requirements_by_id: dict[str, dict[str, str]] = {}
+
+    for line in content.splitlines():
+        row = parse_markdown_table_row(line)
+        if not row:
+            continue
+        requirement_id = normalize_markdown_cell(row[0]).upper()
+        if not PRD_REQUIREMENT_PATTERN.fullmatch(requirement_id):
+            continue
+
+        if requirement_id.startswith("NFR-"):
+            priority = "P0"
+        else:
+            priority = parse_priority(row[2]) if len(row) > 2 else ""
+            if not priority:
+                priority = "P1"
+
+        existing = requirements_by_id.get(requirement_id)
+        if not existing:
+            requirements_by_id[requirement_id] = {
+                "id": requirement_id,
+                "priority": priority,
+            }
+            continue
+
+        if priority_rank(priority) < priority_rank(existing["priority"]):
+            existing["priority"] = priority
+
+    return [
+        requirements_by_id[key]
+        for key in sorted(requirements_by_id.keys(), key=lambda item: item.upper())
+    ]
+
+
+def resolve_project_path(project_dir: Path, raw_path: str) -> tuple[Path | None, str]:
+    candidate = Path(raw_path)
+    resolved = candidate if candidate.is_absolute() else (project_dir / candidate)
+    resolved = resolved.resolve()
+    try:
+        relative = resolved.relative_to(project_dir)
+    except ValueError:
+        return None, ""
+    return resolved, relative.as_posix()
+
+
+def normalize_requirement_id(value: Any) -> str:
+    if not isinstance(value, str):
+        return ""
+    requirement_id = value.strip().upper()
+    if PRD_REQUIREMENT_PATTERN.fullmatch(requirement_id):
+        return requirement_id
+    return ""
+
+
+def normalize_str_list(value: Any) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    items: list[str] = []
+    for item in value:
+        if isinstance(item, str):
+            normalized = item.strip()
+            if normalized:
+                items.append(normalized)
+    return items
+
+
+def scan_placeholder_markers(project_dir: Path, limit: int = 20) -> list[str]:
+    findings: list[str] = []
+    roots = [project_dir / "app", project_dir / "src", project_dir / "__tests__"]
+    for root in roots:
+        if not root.exists() or not root.is_dir():
+            continue
+        for file_path in root.rglob("*"):
+            if (
+                not file_path.is_file()
+                or file_path.suffix.lower() not in PLACEHOLDER_SCAN_EXTENSIONS
+            ):
+                continue
+
+            try:
+                content = file_path.read_text(encoding="utf-8-sig")
+            except UnicodeDecodeError:
+                continue
+
+            for line_number, line in enumerate(content.splitlines(), start=1):
+                for pattern in PLACEHOLDER_SCAN_PATTERNS:
+                    if not pattern.search(line):
+                        continue
+                    relative_path = file_path.relative_to(project_dir).as_posix()
+                    findings.append(
+                        f"{relative_path}:{line_number}: {line.strip()[:140]}"
+                    )
+                    break
+                if len(findings) >= limit:
+                    return findings
+    return findings
+
+
+def load_prd_implementation_report(path: Path) -> dict[str, Any]:
+    report = load_json(path)
+    requirements = report.get("requirements")
+    if not isinstance(requirements, list):
+        raise ValueError(
+            f"{path} is missing 'requirements' array for PRD implementation mapping."
+        )
+    return report
+
+
 REQUIRED_HUMAN_INPUT_FIELDS: tuple[tuple[str, str], ...] = (
     ("APP_NAME", "product-owner"),
     ("IOS_BUNDLE_ID", "mobile-lead"),
@@ -304,6 +478,19 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--project-dir", required=True)
     parser.add_argument(
+        "--prd-path",
+        required=True,
+        help="Path to completed PRD used as implementation contract.",
+    )
+    parser.add_argument(
+        "--implementation-report-path",
+        required=False,
+        help=(
+            "Optional path to PRD implementation report JSON. "
+            "Defaults to <project-dir>/reports/prd-implementation.json."
+        ),
+    )
+    parser.add_argument(
         "--report-path",
         required=False,
         help="Optional path to write machine-readable validation report JSON.",
@@ -316,6 +503,11 @@ def main() -> int:
     module_checks: list[dict[str, Any]] = []
     warnings: list[str] = []
     unresolved_human_dependencies: list[dict[str, str]] = []
+    prd_requirement_ids: list[str] = []
+    p0_requirement_ids: list[str] = []
+    missing_requirement_mappings: list[str] = []
+    p0_implementation_failures: list[str] = []
+    placeholder_findings: list[str] = []
 
     if not project_dir.exists() or not project_dir.is_dir():
         add_check(
@@ -1099,6 +1291,352 @@ def main() -> int:
                     }
                 )
 
+        prd_path = Path(args.prd_path).resolve()
+        if not prd_path.exists() or not prd_path.is_file():
+            add_check(
+                checks,
+                "VC-025",
+                "PRD Requirement Extraction",
+                "Blocker",
+                "fail",
+                f"PRD path does not exist: {prd_path}",
+            )
+            add_check(
+                checks,
+                "VC-026",
+                "PRD Implementation Report Presence",
+                "Blocker",
+                "skipped",
+                "Skipped because PRD could not be loaded.",
+            )
+            add_check(
+                checks,
+                "VC-027",
+                "PRD Mapping Completeness",
+                "Blocker",
+                "skipped",
+                "Skipped because PRD could not be loaded.",
+            )
+            add_check(
+                checks,
+                "VC-028",
+                "P0 Implementation Evidence",
+                "Blocker",
+                "skipped",
+                "Skipped because PRD could not be loaded.",
+            )
+            add_check(
+                checks,
+                "VC-029",
+                "Custom Feature Test Coverage",
+                "Blocker",
+                "skipped",
+                "Skipped because PRD could not be loaded.",
+            )
+        else:
+            prd_requirements: list[dict[str, str]] = []
+            try:
+                prd_requirements = extract_prd_requirements(prd_path)
+            except Exception as exc:  # pragma: no cover - defensive parser guard
+                add_check(
+                    checks,
+                    "VC-025",
+                    "PRD Requirement Extraction",
+                    "Blocker",
+                    "fail",
+                    f"Failed to parse PRD requirements: {exc}",
+                )
+            else:
+                if not prd_requirements:
+                    add_check(
+                        checks,
+                        "VC-025",
+                        "PRD Requirement Extraction",
+                        "Blocker",
+                        "fail",
+                        "No FR-* or NFR-* requirement IDs were found in the PRD.",
+                    )
+                else:
+                    add_check(
+                        checks,
+                        "VC-025",
+                        "PRD Requirement Extraction",
+                        "Blocker",
+                        "pass",
+                        f"Parsed {len(prd_requirements)} requirements from PRD.",
+                    )
+                    prd_requirement_ids = [item["id"] for item in prd_requirements]
+                    p0_requirement_ids = [
+                        item["id"] for item in prd_requirements if item["priority"] == "P0"
+                    ]
+
+            if prd_requirements:
+                implementation_report_path = (
+                    (
+                        Path(args.implementation_report_path).resolve()
+                        if Path(args.implementation_report_path).is_absolute()
+                        else (project_dir / args.implementation_report_path).resolve()
+                    )
+                    if args.implementation_report_path
+                    else (
+                        project_dir / DEFAULT_PRD_IMPLEMENTATION_REPORT_REL_PATH
+                    ).resolve()
+                )
+                implementation_report: dict[str, Any] | None = None
+                if not implementation_report_path.exists():
+                    add_check(
+                        checks,
+                        "VC-026",
+                        "PRD Implementation Report Presence",
+                        "Blocker",
+                        "fail",
+                        f"Missing {implementation_report_path}. Generate it and map PRD requirements to code/tests.",
+                    )
+                    add_check(
+                        checks,
+                        "VC-027",
+                        "PRD Mapping Completeness",
+                        "Blocker",
+                        "skipped",
+                        "Skipped because PRD implementation report is missing.",
+                    )
+                    add_check(
+                        checks,
+                        "VC-028",
+                        "P0 Implementation Evidence",
+                        "Blocker",
+                        "skipped",
+                        "Skipped because PRD implementation report is missing.",
+                    )
+                    add_check(
+                        checks,
+                        "VC-029",
+                        "Custom Feature Test Coverage",
+                        "Blocker",
+                        "skipped",
+                        "Skipped because PRD implementation report is missing.",
+                    )
+                else:
+                    try:
+                        implementation_report = load_prd_implementation_report(
+                            implementation_report_path
+                        )
+                    except ValueError as exc:
+                        add_check(
+                            checks,
+                            "VC-026",
+                            "PRD Implementation Report Presence",
+                            "Blocker",
+                            "fail",
+                            str(exc),
+                        )
+                        add_check(
+                            checks,
+                            "VC-027",
+                            "PRD Mapping Completeness",
+                            "Blocker",
+                            "skipped",
+                            "Skipped because PRD implementation report failed to parse.",
+                        )
+                        add_check(
+                            checks,
+                            "VC-028",
+                            "P0 Implementation Evidence",
+                            "Blocker",
+                            "skipped",
+                            "Skipped because PRD implementation report failed to parse.",
+                        )
+                        add_check(
+                            checks,
+                            "VC-029",
+                            "Custom Feature Test Coverage",
+                            "Blocker",
+                            "skipped",
+                            "Skipped because PRD implementation report failed to parse.",
+                        )
+                    else:
+                        add_check(
+                            checks,
+                            "VC-026",
+                            "PRD Implementation Report Presence",
+                            "Blocker",
+                            "pass",
+                            f"Loaded {implementation_report_path}.",
+                        )
+
+                        requirement_entries: dict[str, dict[str, Any]] = {}
+                        for entry in implementation_report.get("requirements", []):
+                            if not isinstance(entry, dict):
+                                continue
+                            requirement_id = normalize_requirement_id(entry.get("id"))
+                            if not requirement_id:
+                                continue
+                            requirement_entries[requirement_id] = entry
+
+                        missing_requirement_mappings = [
+                            req_id
+                            for req_id in prd_requirement_ids
+                            if req_id not in requirement_entries
+                        ]
+                        if missing_requirement_mappings:
+                            add_check(
+                                checks,
+                                "VC-027",
+                                "PRD Mapping Completeness",
+                                "Blocker",
+                                "fail",
+                                "Missing requirement mappings: "
+                                + ", ".join(missing_requirement_mappings),
+                            )
+                        else:
+                            add_check(
+                                checks,
+                                "VC-027",
+                                "PRD Mapping Completeness",
+                                "Blocker",
+                                "pass",
+                            )
+
+                        referenced_test_paths: set[str] = set()
+                        for requirement_id in p0_requirement_ids:
+                            entry = requirement_entries.get(requirement_id)
+                            if not entry:
+                                continue
+
+                            status = str(entry.get("status", "")).strip().lower()
+                            if status not in IMPLEMENTED_STATUSES:
+                                p0_implementation_failures.append(
+                                    f"{requirement_id}: status must be implemented (found '{status or 'missing'}')."
+                                )
+
+                            code_paths = normalize_str_list(entry.get("code"))
+                            test_paths = normalize_str_list(entry.get("tests"))
+                            if not code_paths:
+                                p0_implementation_failures.append(
+                                    f"{requirement_id}: no code evidence paths listed."
+                                )
+                            if not test_paths:
+                                p0_implementation_failures.append(
+                                    f"{requirement_id}: no test evidence paths listed."
+                                )
+
+                            for raw_path in code_paths:
+                                resolved_path, relative_path = resolve_project_path(
+                                    project_dir, raw_path
+                                )
+                                if not resolved_path:
+                                    p0_implementation_failures.append(
+                                        f"{requirement_id}: code path escapes project root: {raw_path}"
+                                    )
+                                    continue
+                                if not resolved_path.exists():
+                                    p0_implementation_failures.append(
+                                        f"{requirement_id}: missing code file {relative_path}"
+                                    )
+
+                            for raw_path in test_paths:
+                                resolved_path, relative_path = resolve_project_path(
+                                    project_dir, raw_path
+                                )
+                                if not resolved_path:
+                                    p0_implementation_failures.append(
+                                        f"{requirement_id}: test path escapes project root: {raw_path}"
+                                    )
+                                    continue
+                                if not resolved_path.exists():
+                                    p0_implementation_failures.append(
+                                        f"{requirement_id}: missing test file {relative_path}"
+                                    )
+                                    continue
+
+                                referenced_test_paths.add(relative_path)
+                                if ".test." not in relative_path:
+                                    p0_implementation_failures.append(
+                                        f"{requirement_id}: test evidence must point to *.test.ts or *.test.tsx file ({relative_path})."
+                                    )
+                                    continue
+
+                                test_content = resolved_path.read_text(encoding="utf-8-sig")
+                                if "expect(" not in test_content:
+                                    p0_implementation_failures.append(
+                                        f"{requirement_id}: test file has no assertion ({relative_path})."
+                                    )
+
+                        if p0_implementation_failures:
+                            add_check(
+                                checks,
+                                "VC-028",
+                                "P0 Implementation Evidence",
+                                "Blocker",
+                                "fail",
+                                " | ".join(p0_implementation_failures[:12]),
+                            )
+                        else:
+                            add_check(
+                                checks,
+                                "VC-028",
+                                "P0 Implementation Evidence",
+                                "Blocker",
+                                "pass",
+                            )
+
+                        has_module_features = any(
+                            req_id.startswith("FR-") and not req_id.startswith("FR-GLOB-")
+                            for req_id in prd_requirement_ids
+                        )
+                        if has_module_features:
+                            custom_tests = sorted(
+                                path
+                                for path in referenced_test_paths
+                                if path not in BASELINE_TEST_FILES
+                            )
+                            if custom_tests:
+                                add_check(
+                                    checks,
+                                    "VC-029",
+                                    "Custom Feature Test Coverage",
+                                    "Blocker",
+                                    "pass",
+                                    f"Custom feature tests: {', '.join(custom_tests[:6])}",
+                                )
+                            else:
+                                add_check(
+                                    checks,
+                                    "VC-029",
+                                    "Custom Feature Test Coverage",
+                                    "Blocker",
+                                    "fail",
+                                    "Only baseline tests are mapped. Add feature-specific tests for module requirements.",
+                                )
+                        else:
+                            add_check(
+                                checks,
+                                "VC-029",
+                                "Custom Feature Test Coverage",
+                                "Blocker",
+                                "skipped",
+                                "No module-specific FR requirements were found in PRD.",
+                            )
+
+        placeholder_findings = scan_placeholder_markers(project_dir)
+        if placeholder_findings:
+            add_check(
+                checks,
+                "VC-030",
+                "Placeholder Marker Scan",
+                "Blocker",
+                "fail",
+                "Found unresolved placeholder markers in source files.",
+            )
+        else:
+            add_check(
+                checks,
+                "VC-030",
+                "Placeholder Marker Scan",
+                "Blocker",
+                "pass",
+            )
+
     infra_status = compute_infra_status(checks)
     feature_status = compute_feature_status(module_checks)
     status = compute_status(infra_status, feature_status, checks)
@@ -1125,7 +1663,7 @@ def main() -> int:
         print("Validation failed.")
 
     report = {
-        "schemaVersion": 3,
+        "schemaVersion": 4,
         "status": status,
         "infraStatus": infra_status,
         "featureStatus": feature_status,
@@ -1140,6 +1678,11 @@ def main() -> int:
         + [check["id"] for check in module_checks if check["result"] == "fail"],
         "warnings": warnings,
         "unresolvedHumanDependencies": unresolved_human_dependencies,
+        "prdRequirementIds": prd_requirement_ids,
+        "p0RequirementIds": p0_requirement_ids,
+        "missingRequirementMappings": missing_requirement_mappings,
+        "p0ImplementationFailures": p0_implementation_failures,
+        "placeholderFindings": placeholder_findings,
     }
 
     if args.report_path:

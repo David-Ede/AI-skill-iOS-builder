@@ -779,4 +779,5 @@ Write-ModuleMetadata -ProjectDir $projectDir -Flags $moduleFlags -ReleaseBranch 
 Ensure-GitIgnoreEntries -ProjectDir $projectDir
 
 Write-Step "Scaffold completed at: $projectDir"
-Write-Step "Next: run scripts/validate_expo_ios_project.py --project-dir `"$projectDir`""
+Write-Step "Next: run scripts/bootstrap_prd_implementation.py --project-dir `"$projectDir`" --prd-path <PRD_PATH>"
+Write-Step "Then run scripts/validate_expo_ios_project.py --project-dir `"$projectDir`" --prd-path <PRD_PATH>"
